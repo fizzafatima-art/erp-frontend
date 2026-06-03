@@ -1,0 +1,42 @@
+.layout {
+  display: flex;
+  /* Remove fixed height if you want it to scroll naturally */
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  /* No need for overflow hidden here usually, unless specific layout needs */
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* ADD THIS LEFT MARGIN to push content away from the fixed sidebar */
+  margin-left: 250px; 
+  width: calc(100% - 250px);
+  min-width: 0;
+  transition: margin-left 0.3s ease;
+}
+
+/* If you want the sidebar to collapse and push content, add this logic in CSS or via Layout prop */
+.main-content.collapsed {
+  margin-left: 80px;
+  width: calc(100% - 80px);
+}
+
+.header {
+  flex-shrink: 0;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ... rest of your layout.css ... */
