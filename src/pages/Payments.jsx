@@ -1,6 +1,6 @@
 // ── src/pages/Payments.jsx ─────────────────────────────────
 import React, { useEffect, useState } from 'react';
-const API = 'http://localhost:5000/api/v1';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 export default function Payments() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // API Base URL
-const API = 'http://localhost:5000/api/v1';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 // Helper: Number converter (Safe)
 const n = (v) => {
