@@ -32,14 +32,14 @@ export default function Dashboard() {
       const res = await axios.get(`${API}/reports/dashboard`);
       const row = res.data?.data ?? res.data ?? {};
 
-      setKpi({
-        totalPurchases: n(row.totalPurchases),
-        totalSales: n(row.totalSales),
-        totalExpenses: n(row.totalExpenses),
-        outstandingPayables: n(row.outstandingPayables),
-        outstandingReivables: n(row.outstandingReivables),
-        lowStockCount: n(row.lowStockCount),
-      });
+    setKpi({
+    totalPurchases: n(row.totalPurchases),
+    totalSales: n(row.totalSales),
+    totalExpenses: n(row.totalExpenses),
+    outstandingPayables: n(row.payables),        // ✅ payables
+    outstandingReivables: n(row.receivables),    // ✅ receivables
+    lowStockCount: n(row.lowStockCount),
+});
     } catch (e) {
       setError('Failed to load dashboard.');
       console.error('Frontend Error:', e);
