@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 const Table = ({ columns, data, renderRow }) => {
   return (

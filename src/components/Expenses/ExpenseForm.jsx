@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 // FIXED: removed broken imports of Input.jsx, Button.jsx (case-mismatch) and ../../styles/pages.css (outside src/)
 
 const METHODS     = ['Cash','Bank Transfer','Cheque','Card','UPI','Other'];

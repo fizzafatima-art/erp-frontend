@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import stockService from '../../services/stockService';
 import productService from '../../services/productService';
 import Input from '../Common/Input';

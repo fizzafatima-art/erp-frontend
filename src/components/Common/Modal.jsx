@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import './Modal.css'; // Ensure this handles the overlay styles
 
 const Modal = ({ isOpen, onClose, title, children }) => {

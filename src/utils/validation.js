@@ -1,4 +1,4 @@
-﻿export const validateVendor = (vendor) => {
+export const validateVendor = (vendor) => {
     const errors = {};
     if (!vendor.vendorName) errors.vendorName = 'Vendor Name is required';
     if (!vendor.city) errors.city = 'City is required';

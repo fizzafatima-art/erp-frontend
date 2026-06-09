@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 const Input = ({ label, type = "text", name, value, onChange, placeholder, required = false, error }) => {
   return (
