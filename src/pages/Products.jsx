@@ -124,7 +124,7 @@ export default function Products() {
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:14 }}>
             <thead><tr style={{ background:'#f3f4f6' }}>
-              {['#','Name','Category','Unit','Price (Rs.)','Min Qty','Status','Actions'].map(h=>(
+              {['#','Name','Category','Company','Unit','Price (Rs.)','Min Qty','Status','Actions'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
