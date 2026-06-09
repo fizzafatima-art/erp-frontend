@@ -181,9 +181,18 @@ export default function Products() {
               ].map(f => (
                 <div key={f.name} style={{ marginBottom:12 }}>
                   <label style={{ display:'block', fontSize:13, fontWeight:500, marginBottom:4 }}>{f.label}</label>
-                  <input name={f.name} type={f.type||'text'} step={f.step}
-                    value={form[f.name]} onChange={handleChange}
-                    placeholder={f.placeholder} style={S.input} />
+                                    {f.type === 'select' ? (
+                    <select name={f.name} value={form[f.name]} onChange={handleChange} style={S.input}>
+                      <option value=''>Select {f.label}</option>
+                      {f.options && f.options.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input name={f.name} type={f.type || 'text'} step={f.step}
+                      value={form[f.name]} onChange={handleChange}
+                      placeholder={f.placeholder} style={S.input} />
+                  )}
                 </div>
               ))}
               <div style={{ marginBottom:14 }}>
@@ -219,4 +228,5 @@ const S = {
   btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500 }),
   btnSm:  (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:13, fontWeight:500 }),
 };
+
 
