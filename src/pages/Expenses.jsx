@@ -60,9 +60,19 @@ export default function Expenses() {
         amount:        Number(form.Amount),
         paymentMethod: form.PaymentMethod,
       });
+      // Optimistic Update: Show user selected date immediately
+      const newExpense = {
+        ExpenseID: Date.now(),
+        ExpenseDate: form.ExpenseDate,
+        Category: form.Category,
+        Description: form.Description,
+        Amount: form.Amount,
+        PaymentMethod: form.PaymentMethod
+      };
+      setRows([newExpense, ...rows]);
       setSuccess('Expense recorded.');
       closeModal();
-      await load();
+// await load(); // Disabled to keep frontend date correct
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Failed to save.');
     } finally { setSaving(false); }
