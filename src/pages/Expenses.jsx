@@ -12,7 +12,7 @@ const fmt = (v) => {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
 };
 
-const INIT = { Category:'', Description:'', Amount:'', PaymentMethod:'Cash' };
+const INIT = { Category:'', ExpenseDate:'', Description:'', Amount:'', PaymentMethod:'Cash' };
 const METHODS = ['Cash','Bank Transfer','Cheque','Card','UPI','Other'];
 
 export default function Expenses() {
@@ -149,6 +149,9 @@ export default function Expenses() {
                     <option key={c}>{c}</option>
                   ))}
                 </select>
+              <F label="Date *">
+                <input type="date" name="ExpenseDate" value={form.ExpenseDate} onChange={handleChange} style={S.input} required />
+              </F>
               </F>
               <F label="Amount (Rs.) *">
                 <input name="Amount" type="number" step="0.01" min="0.01"
