@@ -174,7 +174,7 @@ export default function Products() {
                 { label:'Product Name *', name:'ProductName', placeholder:'e.g. Basmati Rice' },
                 { label:'Category',       name:'Category',    placeholder:'e.g. Grains' },
                 // FIX 4: Input field ka name 'Price' rakha
-                { label:'Unit Price (Rs.) *',name:'Price', type:'number', step:'0.01' },,
+                { label:'Unit Price (Rs.) *',name:'Price', type:'number', step:'0.01' },
                  { label:'Company Name', name:'CompanyName', placeholder:'e.g. Shan Foods' },
                 { label:'Unit',           name:'Unit', type:'select', options:['Pcs','Kg','Bundle (Kg)','Ltr'] },
                 { label:'Minimum Qty',    name:'MinimumQuantity', type:'number' },
