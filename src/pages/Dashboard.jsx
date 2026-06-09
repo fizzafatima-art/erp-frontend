@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // API Base URL
@@ -11,7 +11,7 @@ const n = (v) => {
 };
 
 // Currency formatter
-const cur = (v) => `₹${n(v).toLocaleString('en-IN')}`;
+const cur = (v) => `Rs.${n(v).toLocaleString('en-IN')}`;
 
 export default function Dashboard() {
   const [kpi, setKpi] = useState(null);
@@ -235,7 +235,7 @@ export default function Dashboard() {
                     <th style={S.th}>City</th>
                     <th style={S.th}>Product Name</th>
                     <th style={S.th}>Qty Sold</th>
-                    <th style={S.th}>Revenue (₹)</th>
+                    <th style={S.th}>Revenue (Rs.)</th>
                   </tr>
                 </thead>
 
@@ -268,7 +268,7 @@ export default function Dashboard() {
                           fontWeight: 600,
                         }}
                       >
-                        ₹
+                        Rs.
                         {n(item.TotalRevenue).toLocaleString(
                           'en-IN'
                         )}

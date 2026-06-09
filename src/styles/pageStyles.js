@@ -1,4 +1,4 @@
-// src/styles/pageStyles.js
+﻿// src/styles/pageStyles.js
 // Import this in every page: import styles from '../../styles/pageStyles';
 
 const styles = {

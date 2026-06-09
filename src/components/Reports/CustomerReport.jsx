@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import vendorService from '../../services/vendorService';
 import '../../styles/tables.css';
 
@@ -80,7 +80,7 @@ export default function CustomerReport() {
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Total Outstanding</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e74c3c' }}>
-                        ₹{summary.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
             </div>
@@ -108,7 +108,7 @@ export default function CustomerReport() {
                                     <td>{customer.city || '-'}</td>
                                     <td>{customer.phone || '-'}</td>
                                     <td>{customer.email || '-'}</td>
-                                    <td>₹{(customer.openingBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td>Rs.{(customer.openingBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                     <td>
                                         <span style={{ 
                                             padding: '4px 8px',
@@ -128,3 +128,4 @@ export default function CustomerReport() {
         </div>
     );
 }
+

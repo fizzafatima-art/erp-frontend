@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // MATCHES backend: GET /api/v1/expenses  POST /api/v1/expenses
@@ -83,7 +83,7 @@ export default function Expenses() {
 
       {/* Summary */}
       <div style={{ display:'flex', gap:14, marginBottom:20, flexWrap:'wrap' }}>
-        <Card label="Total (filtered)" value={`₹${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`} color="#dc2626" />
+        <Card label="Total (filtered)" value={`Rs.${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`} color="#dc2626" />
         <Card label="Records"          value={rows.length} color="#2563eb" />
       </div>
 
@@ -115,7 +115,7 @@ export default function Expenses() {
                     </td>
                     <td style={S.td}>{s(r.Description)||'—'}</td>
                     <td style={{ ...S.td, fontWeight:600, color:'#dc2626' }}>
-                      ₹{n(r.Amount).toLocaleString('en-IN',{minimumFractionDigits:2})}
+                      Rs.{n(r.Amount).toLocaleString('en-IN',{minimumFractionDigits:2})}
                     </td>
                     <td style={S.td}>{s(r.PaymentMethod)||'—'}</td>
                   </tr>
@@ -126,7 +126,7 @@ export default function Expenses() {
               <tfoot><tr style={{ background:'#f9fafb', fontWeight:600 }}>
                 <td colSpan={4} style={{ ...S.td, textAlign:'right' }}>Total:</td>
                 <td style={{ ...S.td, color:'#dc2626' }}>
-                  ₹{total.toLocaleString('en-IN',{minimumFractionDigits:2})}
+                  Rs.{total.toLocaleString('en-IN',{minimumFractionDigits:2})}
                 </td>
                 <td />
               </tr></tfoot>
@@ -149,7 +149,7 @@ export default function Expenses() {
                   ))}
                 </select>
               </F>
-              <F label="Amount (₹) *">
+              <F label="Amount (Rs.) *">
                 <input name="Amount" type="number" step="0.01" min="0.01"
                   value={form.Amount} onChange={handleChange} style={S.input} placeholder="0.00" />
               </F>

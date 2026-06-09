@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 // FIXED: removed broken imports of Input.jsx, Button.jsx (case-mismatch) and ../../styles/pages.css (outside src/)
 
 const METHODS     = ['Cash','Bank Transfer','Cheque','Card','UPI','Other'];
@@ -51,7 +51,7 @@ export default function ExpenseForm({ onSubmit, onCancel, initialData, loading =
         </select>
       </F>
 
-      <F label="Amount (₹) *">
+      <F label="Amount (Rs.) *">
         <input name="Amount" type="number" step="0.01" min="0.01"
           value={form.Amount} onChange={onChange} placeholder="0.00" style={S.input} />
       </F>

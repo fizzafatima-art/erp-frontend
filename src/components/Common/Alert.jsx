@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import './Alert.css'; // Assuming you might want specific styles, or use utility classes
 
 const Alert = ({ type = 'info', message, onClose }) => {

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // Axios seedha use karenge
 
 // Backend API URL
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 const n = (v) => { const x = Number(v); return isNaN(x) ? 0 : x; };
-const cur = (v) => `₹${n(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+const cur = (v) => `Rs.${n(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 export default function Dashboard() {
   const [dashboard, setDashboard] = useState(null);

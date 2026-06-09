@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import saleService from '../../services/saleService';
 import '../../styles/tables.css';
 
@@ -73,21 +73,21 @@ export default function SalesReport() {
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Total Sales</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3498db' }}>
-                        ₹{summary.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Total Received</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#27ae60' }}>
-                        ₹{summary.totalReceived.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalReceived.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Outstanding</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e74c3c' }}>
-                        ₹{summary.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
@@ -143,9 +143,9 @@ export default function SalesReport() {
                                         <td>{invoiceNo}</td>
                                         <td>{saleDate ? new Date(saleDate).toLocaleDateString() : 'N/A'}</td>
                                         <td>{customerName}</td>
-                                        <td>₹{Number(totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                        <td>₹{Number(receivedAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                        <td>₹{Number(balanceAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                        <td>Rs.{Number(totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                        <td>Rs.{Number(receivedAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                        <td>Rs.{Number(balanceAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                         <td>
                                             <span style={{ 
                                                 padding: '4px 8px',
@@ -168,3 +168,4 @@ export default function SalesReport() {
         </div>
     );
 }
+

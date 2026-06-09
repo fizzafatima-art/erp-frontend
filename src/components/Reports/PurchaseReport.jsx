@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import purchaseService from '../../services/purchaseService';
 import '../../styles/tables.css';
 
@@ -73,21 +73,21 @@ export default function PurchaseReport() {
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Total Purchase</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3498db' }}>
-                        ₹{summary.totalPurchases.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalPurchases.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Total Paid</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#27ae60' }}>
-                        ₹{summary.totalPaid.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalPaid.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Outstanding</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e74c3c' }}>
-                        ₹{summary.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalOutstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
@@ -143,9 +143,9 @@ export default function PurchaseReport() {
                                         <td>{invoiceNo}</td>
                                         <td>{purchaseDate ? new Date(purchaseDate).toLocaleDateString() : 'N/A'}</td>
                                         <td>{vendorName}</td>
-                                        <td>₹{Number(totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                        <td>₹{Number(paidAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                        <td>₹{Number(balanceAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                        <td>Rs.{Number(totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                        <td>Rs.{Number(paidAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                        <td>Rs.{Number(balanceAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                         <td>
                                             <span style={{ 
                                                 padding: '4px 8px',
@@ -168,3 +168,4 @@ export default function PurchaseReport() {
         </div>
     );
 }
+

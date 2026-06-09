@@ -1,4 +1,4 @@
-// ── src/pages/Payments.jsx ─────────────────────────────────
+﻿// ── src/pages/Payments.jsx ─────────────────────────────────
 import React, { useEffect, useState } from 'react';
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 export default function Payments() {
@@ -37,3 +37,4 @@ export default function Payments() {
     </div>
   );
 }
+

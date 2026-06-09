@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // MATCHES backend: GET /api/v1/ledger → getGeneralLedger
@@ -77,7 +77,7 @@ export function Ledger() {
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:14 }}>
             <thead><tr style={{ background:'#f3f4f6' }}>
-              {['#','Date','Vendor / Customer','Type','Description','Debit (₹)','Credit (₹)','Balance'].map(h=>(
+              {['#','Date','Vendor / Customer','Type','Description','Debit (Rs.)','Credit (Rs.)','Balance'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -102,13 +102,13 @@ export function Ledger() {
                       </td>
                       <td style={S.td}>{s(r.Description ?? r.Narration ?? r.description)||'—'}</td>
                       <td style={{ ...S.td, color: dr>0?'#dc2626':'#9ca3af', fontWeight: dr>0?600:400 }}>
-                        {dr>0 ? `₹${dr.toFixed(2)}` : '—'}
+                        {dr>0 ? `Rs.${dr.toFixed(2)}` : '—'}
                       </td>
                       <td style={{ ...S.td, color: cr>0?'#16a34a':'#9ca3af', fontWeight: cr>0?600:400 }}>
-                        {cr>0 ? `₹${cr.toFixed(2)}` : '—'}
+                        {cr>0 ? `Rs.${cr.toFixed(2)}` : '—'}
                       </td>
                       <td style={{ ...S.td, fontWeight:700, color: bal>=0?'#2563eb':'#dc2626' }}>
-                        ₹{Math.abs(bal).toFixed(2)} {bal<0?'Dr':'Cr'}
+                        Rs.{Math.abs(bal).toFixed(2)} {bal<0?'Dr':'Cr'}
                       </td>
                     </tr>
                   );

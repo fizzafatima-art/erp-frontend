@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -148,7 +148,7 @@ export function Sales() {
       </div>
 
       <div style={{ display:'flex', gap:14, marginBottom:20, flexWrap:'wrap' }}>
-        <Card label="Total Sales"  value={`₹${totalSales.toLocaleString('en-IN')}`} color="#16a34a" />
+        <Card label="Total Sales"  value={`Rs.${totalSales.toLocaleString('en-IN')}`} color="#16a34a" />
         <Card label="Records"      value={rows.length} color="#374151" />
         <Card label="Unpaid"      value={rows.filter(r=>r.PaymentStatus!=='Paid').length} color="#dc2626" />
       </div>
@@ -170,10 +170,10 @@ export function Sales() {
                   <td style={S.td}>{fmt(r.SaleDate)}</td>
                   <td style={{...S.td, fontWeight:500}}>{s(r.CustomerName)||'—'}</td>
                   <td style={S.td}>{s(r.InvoiceNo)||'—'}</td>
-                  <td style={{...S.td, fontWeight:600}}>₹{n(r.TotalAmount).toFixed(2)}</td>
-                  <td style={S.td}>₹{n(r.PaidAmount).toFixed(2)}</td>
+                  <td style={{...S.td, fontWeight:600}}>Rs.{n(r.TotalAmount).toFixed(2)}</td>
+                  <td style={S.td}>Rs.{n(r.PaidAmount).toFixed(2)}</td>
                   <td style={{...S.td, color: n(r.BalanceAmount)>0?'#dc2626':'#16a34a', fontWeight:600 }}>
-                    ₹{n(r.BalanceAmount).toFixed(2)}
+                    Rs.{n(r.BalanceAmount).toFixed(2)}
                   </td>
                   <td style={S.td}>
                     <span style={{
@@ -228,7 +228,7 @@ export function Sales() {
                     </select>
                     <input type="number" placeholder="Qty" style={{...S.input, flex:1}} value={item.Quantity} onChange={e=>updateItem(idx, 'Quantity', e.target.value)} />
                     <input type="number" placeholder="Rate" style={{...S.input, flex:1}} value={item.Rate} onChange={e=>updateItem(idx, 'Rate', e.target.value)} />
-                    <div style={{...S.input, flex:1, background:'#fff', color:'#666'}}>₹{item.Amount}</div>
+                    <div style={{...S.input, flex:1, background:'#fff', color:'#666'}}>Rs.{item.Amount}</div>
                     <button type="button" onClick={()=>removeItemRow(idx)} style={{color:'red', background:'none', border:'none', cursor:'pointer'}}>✕</button>
                   </div>
                 ))}
@@ -236,7 +236,7 @@ export function Sales() {
               </div>
 
               <div style={{marginTop:15, textAlign:'right', fontSize:16, fontWeight:700}}>
-                Grand Total: ₹{getTotal().toFixed(2)}
+                Grand Total: Rs.{getTotal().toFixed(2)}
               </div>
 
               <div style={{display:'flex', gap:10, marginTop:20}}>

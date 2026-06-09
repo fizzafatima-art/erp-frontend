@@ -1,4 +1,4 @@
-// Similar to PurchaseForm, but for Customers
+﻿// Similar to PurchaseForm, but for Customers
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import saleService from '../../services/saleService';

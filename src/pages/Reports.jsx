@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 // MATCHES backend routes:
@@ -10,7 +10,7 @@ const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1'
 
 const n   = (v) => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const s   = (v) => (v == null ? '' : String(v));
-const cur = (v) => `₹${n(v).toLocaleString('en-IN',{minimumFractionDigits:2})}`;
+const cur = (v) => `Rs.${n(v).toLocaleString('en-IN',{minimumFractionDigits:2})}`;
 const fmt = (v) => {
   if (!v) return '—';
   const d = new Date(v);

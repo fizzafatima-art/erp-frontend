@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import saleService from '../../services/saleService';
 import '../../styles/tables.css';
@@ -116,9 +116,9 @@ export default function SalesList() {
                                             : 'N/A'}
                                     </td>
                                     <td>{customerName}</td>
-                                    <td>₹{Number(totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                    <td>₹{Number(receivedAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                    <td>₹{Number(balanceAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td>Rs.{Number(totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td>Rs.{Number(receivedAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td>Rs.{Number(balanceAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                     <td>
                                         <span className={`status ${getStatusColor(paymentStatus)}`}>
                                             {paymentStatus || 'Pending'}
@@ -141,3 +141,4 @@ export default function SalesList() {
         </div>
     );
 }
+

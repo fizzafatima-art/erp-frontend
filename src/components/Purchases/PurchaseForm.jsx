@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import purchaseService from '../../services/purchaseService';
 import vendorService from '../../services/vendorService';
@@ -189,7 +189,7 @@ export default function PurchaseForm() {
         ))}
 
         <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '4px', textAlign: 'right' }}>
-          <h4>Total Amount: ₹{calculateTotal().toFixed(2)}</h4>
+          <h4>Total Amount: Rs.{calculateTotal().toFixed(2)}</h4>
         </div>
         
         <Button type="button" variant="secondary" onClick={addItem} disabled={loading}>
@@ -213,3 +213,4 @@ export default function PurchaseForm() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-// Format currency (e.g., 1000 -> ₹1,000.00)
+﻿// Format currency (e.g., 1000 -> Rs.1,000.00)
 export const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import ledgerService from '../../services/ledgerService';
 import '../../styles/tables.css';
 
@@ -45,9 +45,9 @@ export default function LedgerView() {
                                 <td>{new Date(entry.transactionDate).toLocaleDateString()}</td>
                                 <td>{entry.vendorName}</td>
                                 <td>{entry.transactionType}</td>
-                                <td>{entry.debitAmount > 0 ? `₹${entry.debitAmount}` : '-'}</td>
-                                <td>{entry.creditAmount > 0 ? `₹${entry.creditAmount}` : '-'}</td>
-                                <td>₹{entry.runningBalance}</td>
+                                <td>{entry.debitAmount > 0 ? `Rs.${entry.debitAmount}` : '-'}</td>
+                                <td>{entry.creditAmount > 0 ? `Rs.${entry.creditAmount}` : '-'}</td>
+                                <td>Rs.{entry.runningBalance}</td>
                             </tr>
                         ))}
                     </tbody>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import vendorService from '../../services/vendorService';
 
@@ -43,9 +43,9 @@ export default function LedgerDetail() {
               <td>{new Date(entry.transactionDate).toLocaleDateString()}</td>
               <td>{entry.transactionType}</td>
               <td>{entry.invoiceNo || '-'}</td>
-              <td>{entry.debitAmount > 0 ? `₹${entry.debitAmount}` : '-'}</td>
-              <td>{entry.creditAmount > 0 ? `₹${entry.creditAmount}` : '-'}</td>
-              <td>₹{entry.runningBalance}</td>
+              <td>{entry.debitAmount > 0 ? `Rs.${entry.debitAmount}` : '-'}</td>
+              <td>{entry.creditAmount > 0 ? `Rs.${entry.creditAmount}` : '-'}</td>
+              <td>Rs.{entry.runningBalance}</td>
             </tr>
           ))}
         </tbody>

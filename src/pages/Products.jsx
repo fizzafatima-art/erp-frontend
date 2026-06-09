@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // MATCHES backend: GET /api/v1/products
@@ -122,7 +122,7 @@ export default function Products() {
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:14 }}>
             <thead><tr style={{ background:'#f3f4f6' }}>
-              {['#','Name','Category','Unit','Price (₹)','Min Qty','Status','Actions'].map(h=>(
+              {['#','Name','Category','Unit','Price (Rs.)','Min Qty','Status','Actions'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -140,7 +140,7 @@ export default function Products() {
                       <td style={{ ...S.td, fontWeight:500 }}>{s(r.ProductName)||'—'}</td>
                       <td style={S.td}>{s(r.Category)||'—'}</td>
                       <td style={S.td}>{s(r.Unit)||'—'}</td>
-                      <td style={{ ...S.td, fontWeight:600 }}>₹{price.toFixed(2)}</td>
+                      <td style={{ ...S.td, fontWeight:600 }}>Rs.{price.toFixed(2)}</td>
                       <td style={S.td}>{r.MinimumQuantity ?? r.minimumQuantity ?? 0}</td>
                       <td style={S.td}>
                         <span style={{ padding:'2px 8px', borderRadius:10, fontSize:12, fontWeight:600,
@@ -172,7 +172,7 @@ export default function Products() {
                 { label:'Product Name *', name:'ProductName', placeholder:'e.g. Basmati Rice' },
                 { label:'Category',       name:'Category',    placeholder:'e.g. Grains' },
                 // FIX 4: Input field ka name 'Price' rakha
-                { label:'Unit Price (₹) *',name:'Price', type:'number', step:'0.01' },
+                { label:'Unit Price (Rs.) *',name:'Price', type:'number', step:'0.01' },
                 { label:'Unit',           name:'Unit',        placeholder:'e.g. kg, pcs, litre' },
                 { label:'Minimum Qty',    name:'MinimumQuantity', type:'number' },
               ].map(f => (

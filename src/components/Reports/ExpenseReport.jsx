@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import expenseService from '../../services/expenseService';
 import '../../styles/tables.css';
 
@@ -64,7 +64,7 @@ export default function ExpenseReport() {
                 <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <h3 style={{ marginTop: 0, color: '#666' }}>Total Expenses</h3>
                     <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e74c3c' }}>
-                        ₹{summary.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        Rs.{summary.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
@@ -92,7 +92,7 @@ export default function ExpenseReport() {
                         Object.entries(summary.byCategory).map(([category, amount]) => (
                             <div key={category} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
                                 <span>{category}</span>
-                                <strong>₹{amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
+                                <strong>Rs.{amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
                             </div>
                         ))
                     )}
@@ -106,7 +106,7 @@ export default function ExpenseReport() {
                         Object.entries(summary.byMethod).map(([method, amount]) => (
                             <div key={method} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
                                 <span>{method}</span>
-                                <strong>₹{amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
+                                <strong>Rs.{amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
                             </div>
                         ))
                     )}
@@ -135,7 +135,7 @@ export default function ExpenseReport() {
                                     <td>{new Date(expense.expenseDate).toLocaleDateString()}</td>
                                     <td>{expense.category}</td>
                                     <td>{expense.description}</td>
-                                    <td>₹{(expense.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td>Rs.{(expense.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                     <td>{expense.paymentMethod}</td>
                                     <td>
                                         <span style={{ 
@@ -156,3 +156,4 @@ export default function ExpenseReport() {
         </div>
     );
 }
+

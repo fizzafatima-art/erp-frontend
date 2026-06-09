@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import vendorService from '../../services/vendorService';
 import '../../styles/tables.css';
@@ -77,7 +77,7 @@ export default function VendorList() {
                                 <td>{vendor.vendorType}</td>
                                 <td>{vendor.city}</td>
                                 <td>{vendor.phone || '-'}</td>
-                                <td>₹{(vendor.openingBalance || 0).toLocaleString()}</td>
+                                <td>Rs.{(vendor.openingBalance || 0).toLocaleString()}</td>
                                 <td>
                                     <button 
                                         className="btn-small"

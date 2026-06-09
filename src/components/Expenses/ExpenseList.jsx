@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import expenseService from '../../services/expenseService';
 import '../../styles/tables.css';
 
@@ -45,7 +45,7 @@ export default function ExpenseList() {
                                 <td>{new Date(ex.expenseDate).toLocaleDateString()}</td>
                                 <td>{ex.category}</td>
                                 <td>{ex.description}</td>
-                                <td>₹{ex.amount}</td>
+                                <td>Rs.{ex.amount}</td>
                                 <td>{ex.paymentMethod}</td>
                             </tr>
                         ))}

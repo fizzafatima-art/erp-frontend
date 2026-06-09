@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // MATCHES backend: GET /api/v1/purchases → returns { success, data: [{...VendorName, ...}] }
@@ -49,7 +49,7 @@ export function Purchases() {
 
       {/* Summary */}
       <div style={{ display:'flex', gap:14, marginBottom:20, flexWrap:'wrap' }}>
-        <Card label="Total Purchases" value={`₹${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`} color="#2563eb" />
+        <Card label="Total Purchases" value={`Rs.${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`} color="#2563eb" />
         <Card label="Records" value={rows.length} color="#374151" />
         <Card label="Unpaid"
           value={rows.filter(r=>s(r.PaymentStatus).toLowerCase()!=='paid').length}
@@ -81,10 +81,10 @@ export function Purchases() {
                       <td style={S.td}>{fmt(r.PurchaseDate ?? r.purchaseDate)}</td>
                       <td style={{ ...S.td, fontWeight:500 }}>{s(r.VendorName)||'—'}</td>
                       <td style={S.td}>{s(r.InvoiceNo)||'—'}</td>
-                      <td style={{ ...S.td, fontWeight:600 }}>₹{n(r.TotalAmount).toFixed(2)}</td>
-                      <td style={S.td}>₹{n(r.PaidAmount ?? r.paidAmount).toFixed(2)}</td>
+                      <td style={{ ...S.td, fontWeight:600 }}>Rs.{n(r.TotalAmount).toFixed(2)}</td>
+                      <td style={S.td}>Rs.{n(r.PaidAmount ?? r.paidAmount).toFixed(2)}</td>
                       <td style={{ ...S.td, color: n(r.BalanceAmount)>0?'#dc2626':'#16a34a', fontWeight:600 }}>
-                        ₹{n(r.BalanceAmount ?? r.balanceAmount).toFixed(2)}
+                        Rs.{n(r.BalanceAmount ?? r.balanceAmount).toFixed(2)}
                       </td>
                       <td style={S.td}>
                         <span style={{ padding:'3px 10px', borderRadius:12, fontSize:12, fontWeight:600,

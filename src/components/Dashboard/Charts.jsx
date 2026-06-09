@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 const Charts = () => {
   // Placeholder for charts. You can integrate Recharts or Chart.js here later.
