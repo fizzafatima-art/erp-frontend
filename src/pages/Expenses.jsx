@@ -55,6 +55,7 @@ export default function Expenses() {
       // backend createExpense expects: { category, description, amount, paymentMethod }
       await axios.post(`${API}/expenses`, {
         category:      form.Category.trim(),
+        expenseDate: form.ExpenseDate || new Date().toISOString().split('T')[0],
         description:   form.Description.trim(),
         amount:        Number(form.Amount),
         paymentMethod: form.PaymentMethod,
@@ -206,3 +207,4 @@ const S = {
   ok:     { background:'#f0fdf4', border:'1px solid #86efac', color:'#15803d', padding:'10px 14px', borderRadius:6, marginBottom:14, fontSize:14 },
   btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500 }),
 };
+

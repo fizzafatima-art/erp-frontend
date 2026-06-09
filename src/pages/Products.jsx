@@ -43,7 +43,8 @@ export default function Products() {
     setForm({
       ProductName:     s(r.ProductName     || r.productName),
       Category:        s(r.Category        || r.categoryName || r.CategoryName),
-      Price:           s(r.Price           || r.price || r.UnitPrice), // Fallback added just in case
+      Price:           s(r.Price           || r.price || r.UnitPrice),
+        CompanyName: s(r.CompanyName || r.companyName), // Fallback added just in case
       Unit:            s(r.Unit            || r.unit),
       Description:     s(r.Description     || r.description),
       MinimumQuantity: s(r.MinimumQuantity || r.minimumQuantity),
@@ -64,7 +65,8 @@ export default function Products() {
     const payload = {
       productName:     form.ProductName.trim(),
       category:        form.Category.trim(),
-      price:           Number(form.Price),  // Changed from unitPrice to price
+      price:           Number(form.Price),
+        companyName: form.CompanyName.trim(),  // Changed from unitPrice to price
       unit:            form.Unit.trim(),
       description:     form.Description.trim(),
       minimumQuantity: form.MinimumQuantity ? Number(form.MinimumQuantity) : 0,
@@ -172,8 +174,9 @@ export default function Products() {
                 { label:'Product Name *', name:'ProductName', placeholder:'e.g. Basmati Rice' },
                 { label:'Category',       name:'Category',    placeholder:'e.g. Grains' },
                 // FIX 4: Input field ka name 'Price' rakha
-                { label:'Unit Price (Rs.) *',name:'Price', type:'number', step:'0.01' },
-                { label:'Unit',           name:'Unit',        placeholder:'e.g. kg, pcs, litre' },
+                { label:'Unit Price (Rs.) *',name:'Price', type:'number', step:'0.01' },,
+                 { label:'Company Name', name:'CompanyName', placeholder:'e.g. Shan Foods' },
+                { label:'Unit',           name:'Unit', type:'select', options:['Pcs','Kg','Bundle (Kg)','Ltr'] },
                 { label:'Minimum Qty',    name:'MinimumQuantity', type:'number' },
               ].map(f => (
                 <div key={f.name} style={{ marginBottom:12 }}>
@@ -216,3 +219,4 @@ const S = {
   btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500 }),
   btnSm:  (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:13, fontWeight:500 }),
 };
+

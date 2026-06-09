@@ -233,7 +233,7 @@ export function Vendors() {
                 <div style={{...S.formGroup, flex:1}}>
                   <label style={S.label}>Type</label>
                   <select name="VendorType" value={formData.VendorType} onChange={handleInputChange} style={S.input}>
-                    <option value="Vendor">Vendor</option>
+                    <option value="Supplier">Vendor</option>
                     <option value="Customer">Customer</option>
                     <option value="Both">Both</option>
                   </select>
