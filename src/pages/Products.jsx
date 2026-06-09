@@ -141,6 +141,7 @@ export default function Products() {
                       <td style={S.td}>{i+1}</td>
                       <td style={{ ...S.td, fontWeight:500 }}>{s(r.ProductName)||'—'}</td>
                       <td style={S.td}>{s(r.Category)||'—'}</td>
+                      <td style={S.td}>{s(r.CompanyName)||'�'}</td>
                       <td style={S.td}>{s(r.Unit)||'—'}</td>
                       <td style={{ ...S.td, fontWeight:600 }}>Rs.{price.toFixed(2)}</td>
                       <td style={S.td}>{r.MinimumQuantity ?? r.minimumQuantity ?? 0}</td>
