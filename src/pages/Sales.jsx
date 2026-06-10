@@ -3,13 +3,12 @@ import axios from 'axios';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 
-// Helpers
 const s   = (v) => (v == null ? '' : String(v));
 const n   = (v) => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v) => {
-  if (!v) return '—';
+  if (!v) return '-';
   const d = new Date(v);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-PK', { day:'2-digit', month:'short', year:'numeric' });
 };
 
 export function Sales() {
@@ -17,27 +16,36 @@ export function Sales() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [search, setSearch]   = useState('');
-
-  // Modal State
   const [showModal, setShowModal] = useState(false);
-  
-  // Dropdown Data
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [selectedSale, setSelectedSale] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts]   = useState([]);
 
-  // Form State
   const [formData, setFormData] = useState({
     CustomerID: '',
     SaleDate: new Date().toISOString().split('T')[0],
     Description: '',
-    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0 }]
+    ReceivedAmount: 0,
+    PaymentMethod: 'Cash',
+    ChequeNo: '',
+    BankDetails: '',
+    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
+  });
+
+  const [payForm, setPayForm] = useState({
+    amount: '',
+    method: 'Cash',
+    chequeNo: '',
+    bankDetails: '',
+    notes: ''
   });
 
   useEffect(() => { load(); loadDropdowns(); }, []);
 
   const loadDropdowns = async () => {
     try {
-      const vRes = await axios.get(`${API}/vendors`); 
+      const vRes = await axios.get(`${API}/vendors`);
       const allVendors = Array.isArray(vRes.data?.data) ? vRes.data.data : [];
       const cust = allVendors.filter(v => v.VendorType === 'Customer' || v.VendorType === 'Both');
       setCustomers(cust);
@@ -60,76 +68,103 @@ export function Sales() {
     } finally { setLoading(false); }
   };
 
-  // --- Calculation Logic ---
   const updateItem = (index, field, value) => {
     const newItems = [...formData.Items];
     newItems[index][field] = value;
-    
+
+    if (field === 'ProductID') {
+      const prod = products.find(p => String(p.ProductID) === String(value));
+      newItems[index].Stock = prod ? n(prod.CurrentQuantity) : 0;
+      newItems[index].Rate  = prod ? n(prod.Price) : 0;
+    }
+
     if (field === 'Quantity' || field === 'Rate') {
-      const qty = Number(newItems[index].Quantity) || 0;
+      const qty  = Number(newItems[index].Quantity) || 0;
       const rate = Number(newItems[index].Rate) || 0;
       newItems[index].Amount = qty * rate;
     }
-    
+
     setFormData({ ...formData, Items: newItems });
   };
 
   const addItemRow = () => {
-    setFormData({ 
-      ...formData, 
-      Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0 }] 
+    setFormData({
+      ...formData,
+      Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
     });
   };
 
   const removeItemRow = (index) => {
-    const newItems = formData.Items.filter((_, i) => i !== index);
-    setFormData({ ...formData, Items: newItems });
+    setFormData({ ...formData, Items: formData.Items.filter((_, i) => i !== index) });
   };
 
-  const getTotal = () => {
-    return formData.Items.reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
-  };
+  const getTotal = () => formData.Items.reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
 
-  // --- Return Sale Function ---
   const handleReturn = async (id) => {
-    if (!id) return; // Header row se bachne ke liye
-    if (window.confirm('Are you sure you want to return this sale? Stock will be restored.')) {
+    if (!id) return;
+    if (window.confirm('Return this sale? Stock will be restored.')) {
       try {
-        await axios.post(`${API}/sales/return`, { SaleID: id, ReturnDate: new Date().toISOString().split('T')[0] });
+        await axios.post(`${API}/sales/return`, { SaleID: id });
         alert('Sale Returned Successfully!');
         load();
       } catch (err) {
-        console.error(err);
-        alert('Error returning sale');
+        alert('Error returning sale: ' + (err.response?.data?.message || err.message));
       }
     }
   };
 
-  // --- Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const total = getTotal();
+      const paid  = Number(formData.ReceivedAmount) || 0;
       const payload = {
-        ...formData,
-        TotalAmount: getTotal(),
-        ReceivedAmount: 0,
+        CustomerID:     formData.CustomerID,
+        SaleDate:       formData.SaleDate,
+        Description:    formData.Description,
+        TotalAmount:    total,
+        ReceivedAmount: paid,
+        Items:          formData.Items,
       };
-
       await axios.post(`${API}/sales`, payload);
       alert('Sale Created Successfully!');
       setShowModal(false);
       setFormData({
         CustomerID: '', SaleDate: new Date().toISOString().split('T')[0],
-        Description: '', Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0 }]
+        Description: '', ReceivedAmount: 0, PaymentMethod: 'Cash',
+        ChequeNo: '', BankDetails: '',
+        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
       });
       load();
     } catch (err) {
-      console.error(err);
-      alert('Error creating sale');
+      alert('Error: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  // --- Render Logic ---
+  const openPayModal = (sale) => {
+    setSelectedSale(sale);
+    setPayForm({ amount: n(sale.BalanceAmount).toFixed(2), method: 'Cash', chequeNo: '', bankDetails: '', notes: '' });
+    setShowPayModal(true);
+  };
+
+  const handlePaySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`${API}/sales/${selectedSale.SaleID}/payment`, {
+        amount:      Number(payForm.amount),
+        method:      payForm.method,
+        chequeNo:    payForm.chequeNo,
+        bankDetails: payForm.bankDetails,
+        notes:       payForm.notes,
+      });
+      alert('Payment recorded!');
+      setShowPayModal(false);
+      load();
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   const filtered = rows.filter(r => {
     const q = search.toLowerCase();
     return s(r.CustomerName).toLowerCase().includes(q) || s(r.InvoiceNo).toLowerCase().includes(q);
@@ -141,7 +176,7 @@ export function Sales() {
     <div style={{ padding:24, fontFamily:'Segoe UI,sans-serif' }}>
       <div style={S.hdr}>
         <h2 style={{ margin:0 }}>💳 Sales</h2>
-        <div>
+        <div style={{ display:'flex', gap:8 }}>
           <button onClick={load} style={S.btn('#6b7280')}>↻ Refresh</button>
           <button onClick={() => setShowModal(true)} style={S.btn('#2563eb')}>+ New Sale</button>
         </div>
@@ -150,98 +185,214 @@ export function Sales() {
       <div style={{ display:'flex', gap:14, marginBottom:20, flexWrap:'wrap' }}>
         <Card label="Total Sales"  value={`Rs.${totalSales.toLocaleString('en-IN')}`} color="#16a34a" />
         <Card label="Records"      value={rows.length} color="#374151" />
-        <Card label="Unpaid"      value={rows.filter(r=>r.PaymentStatus!=='Paid').length} color="#dc2626" />
+        <Card label="Unpaid"       value={rows.filter(r=>r.PaymentStatus!=='Paid').length} color="#dc2626" />
       </div>
 
       {error && <div style={S.err}>{error}</div>}
-      <input placeholder="Search customer or invoice…" value={search} onChange={e=>setSearch(e.target.value)} style={S.search} />
+      <input placeholder="Search customer or invoice..." value={search}
+        onChange={e=>setSearch(e.target.value)} style={S.search} />
 
-      {loading ? <p>Loading…</p> : (
+      {loading ? <p>Loading...</p> : (
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:14 }}>
             <thead><tr style={{ background:'#f3f4f6' }}>
-              {['#','Date','Customer','Invoice #','Total','Paid','Balance','Status','Actions'].map(h=>(<th key={h} style={S.th}>{h}</th>))}
+              {['#','Date','Customer','Invoice #','Total','Paid','Balance','Status','Actions'].map(h=>(
+                <th key={h} style={S.th}>{h}</th>
+              ))}
             </tr></thead>
             <tbody>
-              {filtered.length===0 ? <tr><td colSpan={9} style={S.empty}>No sales found.</td></tr> :
-              filtered.map((r,i) => (
-                <tr key={r.SaleID} style={{ borderBottom:'1px solid #e5e7eb' }}>
-                  <td style={S.td}>{i+1}</td>
-                  <td style={S.td}>{fmt(r.SaleDate)}</td>
-                  <td style={{...S.td, fontWeight:500}}>{s(r.CustomerName)||'—'}</td>
-                  <td style={S.td}>{s(r.InvoiceNo)||'—'}</td>
-                  <td style={{...S.td, fontWeight:600}}>Rs.{n(r.TotalAmount).toFixed(2)}</td>
-                  <td style={S.td}>Rs.{n(r.PaidAmount).toFixed(2)}</td>
-                  <td style={{...S.td, color: n(r.BalanceAmount)>0?'#dc2626':'#16a34a', fontWeight:600 }}>
-                    Rs.{n(r.BalanceAmount).toFixed(2)}
-                  </td>
-                  <td style={S.td}>
-                    <span style={{
-                      padding:'3px 10px', borderRadius:12, fontSize:12, fontWeight:600,
-                      background: r.PaymentStatus==='Paid'?'#f0fdf4':'#fef2f2',
-                      color:      r.PaymentStatus==='Paid'?'#16a34a':'#dc2626'
-                    }}>{r.PaymentStatus}</span>
-                  </td>
-                  <td style={S.td}>
-                    {/* Actions Column */}
-                    {r.PaymentStatus !== 'Returned' && (
+              {filtered.length===0
+                ? <tr><td colSpan={9} style={S.empty}>No sales found.</td></tr>
+                : filtered.map((r,i) => (
+                  <tr key={r.SaleID} style={{ borderBottom:'1px solid #e5e7eb' }}>
+                    <td style={S.td}>{i+1}</td>
+                    <td style={S.td}>{fmt(r.SaleDate)}</td>
+                    <td style={{...S.td, fontWeight:500}}>{s(r.CustomerName)||'-'}</td>
+                    <td style={S.td}>{s(r.InvoiceNo)||'-'}</td>
+                    <td style={{...S.td, fontWeight:600}}>Rs.{n(r.TotalAmount).toFixed(2)}</td>
+                    <td style={S.td}>Rs.{n(r.PaidAmount).toFixed(2)}</td>
+                    <td style={{...S.td, color: n(r.BalanceAmount)>0?'#dc2626':'#16a34a', fontWeight:600}}>
+                      Rs.{n(r.BalanceAmount).toFixed(2)}
+                    </td>
+                    <td style={S.td}>
+                      <span style={{
+                        padding:'3px 10px', borderRadius:12, fontSize:12, fontWeight:600,
+                        background: r.PaymentStatus==='Paid'?'#f0fdf4':'#fef2f2',
+                        color:      r.PaymentStatus==='Paid'?'#16a34a':'#dc2626'
+                      }}>{r.PaymentStatus}</span>
+                    </td>
+                    <td style={{...S.td, display:'flex', gap:4}}>
+                      {r.PaymentStatus !== 'Returned' && r.PaymentStatus !== 'Paid' && (
+                        <button onClick={() => openPayModal(r)} style={S.btnSm('#16a34a')}>Pay</button>
+                      )}
+                      {r.PaymentStatus !== 'Returned' && (
                         <button onClick={() => handleReturn(r.SaleID)} style={S.btnSm('#f59e0b')}>Return</button>
-                    )}
-                    {r.PaymentStatus === 'Returned' && <span style={{color:'#9ca3af', fontSize:12}}>Returned</span>}
-                  </td>
-                </tr>
-              ))}
+                      )}
+                      {r.PaymentStatus === 'Returned' && (
+                        <span style={{color:'#9ca3af', fontSize:12}}>Returned</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              }
             </tbody>
           </table>
         </div>
       )}
 
-      {/* --- ADD SALE MODAL --- */}
+      {/* NEW SALE MODAL */}
       {showModal && (
-        <div style={S.modalOverlay}>
+        <div style={S.overlay}>
           <div style={S.modal}>
             <h3 style={{ marginTop:0 }}>New Sale</h3>
             <form onSubmit={handleSubmit}>
               <div style={{display:'flex', gap:10}}>
                 <div style={{flex:1}}>
                   <label style={S.label}>Customer *</label>
-                  <select required style={S.input} value={formData.CustomerID} onChange={e=>setFormData({...formData, CustomerID: e.target.value})}>
+                  <select required style={S.input} value={formData.CustomerID}
+                    onChange={e=>setFormData({...formData, CustomerID: e.target.value})}>
                     <option value="">Select Customer</option>
                     {customers.map(c => <option key={c.VendorID} value={c.VendorID}>{c.VendorName}</option>)}
                   </select>
                 </div>
                 <div style={{flex:1}}>
                   <label style={S.label}>Date *</label>
-                  <input required type="date" style={S.input} value={formData.SaleDate} onChange={e=>setFormData({...formData, SaleDate: e.target.value})} />
+                  <input required type="date" style={S.input} value={formData.SaleDate}
+                    onChange={e=>setFormData({...formData, SaleDate: e.target.value})} />
                 </div>
               </div>
-              
+
               <label style={{...S.label, marginTop:10}}>Items</label>
-              <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:300, overflowY:'auto'}}>
+              <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:280, overflowY:'auto'}}>
                 {formData.Items.map((item, idx) => (
-                  <div key={idx} style={{display:'flex', gap:5, marginBottom:8, alignItems:'center'}}>
-                    <select style={{...S.input, flex:2}} value={item.ProductID} onChange={e=>updateItem(idx, 'ProductID', e.target.value)}>
-                      <option value="">Select Product</option>
-                      {products.map(p => (
-                        <option key={p.ProductID} value={p.ProductID}>{p.ProductName} ({p.Unit})</option>
-                      ))}
-                    </select>
-                    <input type="number" placeholder="Qty" style={{...S.input, flex:1}} value={item.Quantity} onChange={e=>updateItem(idx, 'Quantity', e.target.value)} />
-                    <input type="number" placeholder="Rate" style={{...S.input, flex:1}} value={item.Rate} onChange={e=>updateItem(idx, 'Rate', e.target.value)} />
-                    <div style={{...S.input, flex:1, background:'#fff', color:'#666'}}>Rs.{item.Amount}</div>
-                    <button type="button" onClick={()=>removeItemRow(idx)} style={{color:'red', background:'none', border:'none', cursor:'pointer'}}>✕</button>
+                  <div key={idx} style={{marginBottom:8}}>
+                    <div style={{display:'flex', gap:5, alignItems:'center'}}>
+                      <select style={{...S.input, flex:2}} value={item.ProductID}
+                        onChange={e=>updateItem(idx, 'ProductID', e.target.value)}>
+                        <option value="">Select Product</option>
+                        {products.map(p => (
+                          <option key={p.ProductID} value={p.ProductID}>{p.ProductName} ({p.Unit})</option>
+                        ))}
+                      </select>
+                      <input type="number" placeholder="Qty" style={{...S.input, flex:1}}
+                        value={item.Quantity} onChange={e=>updateItem(idx, 'Quantity', e.target.value)} />
+                      <input type="number" placeholder="Rate" style={{...S.input, flex:1}}
+                        value={item.Rate} onChange={e=>updateItem(idx, 'Rate', e.target.value)} />
+                      <div style={{...S.input, flex:1, background:'#fff', color:'#374151', fontWeight:600}}>
+                        Rs.{n(item.Amount).toFixed(0)}
+                      </div>
+                      <button type="button" onClick={()=>removeItemRow(idx)}
+                        style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
+                    </div>
+                    {item.ProductID && (
+                      <div style={{fontSize:11, color: n(item.Stock) < n(item.Quantity) ? '#dc2626' : '#16a34a', marginTop:2, paddingLeft:4}}>
+                        Stock available: {n(item.Stock)} {n(item.Stock) < n(item.Quantity) ? '⚠️ Low!' : '✓'}
+                      </div>
+                    )}
                   </div>
                 ))}
-                <button type="button" onClick={addItemRow} style={{width:'100%', padding:5, background:'#e0f2fe', color:'#0284c7', border:'none', borderRadius:4, cursor:'pointer'}}>+ Add Item</button>
+                <button type="button" onClick={addItemRow}
+                  style={{width:'100%', padding:6, background:'#e0f2fe', color:'#0284c7', border:'none', borderRadius:4, cursor:'pointer'}}>
+                  + Add Item
+                </button>
               </div>
 
-              <div style={{marginTop:15, textAlign:'right', fontSize:16, fontWeight:700}}>
-                Grand Total: Rs.{getTotal().toFixed(2)}
+              {/* Payment Section */}
+              <div style={{marginTop:12, padding:12, background:'#f0fdf4', borderRadius:6, border:'1px solid #86efac'}}>
+                <div style={{fontWeight:600, marginBottom:8, color:'#15803d'}}>💰 Payment Details</div>
+                <div style={{display:'flex', gap:10}}>
+                  <div style={{flex:1}}>
+                    <label style={S.label}>Amount Received</label>
+                    <input type="number" style={S.input} placeholder="0"
+                      value={formData.ReceivedAmount}
+                      onChange={e=>setFormData({...formData, ReceivedAmount: e.target.value})} />
+                  </div>
+                  <div style={{flex:1}}>
+                    <label style={S.label}>Payment Method</label>
+                    <select style={S.input} value={formData.PaymentMethod}
+                      onChange={e=>setFormData({...formData, PaymentMethod: e.target.value})}>
+                      <option>Cash</option>
+                      <option>Cheque</option>
+                      <option>Online</option>
+                      <option>Bank Transfer</option>
+                    </select>
+                  </div>
+                </div>
+                {formData.PaymentMethod === 'Cheque' && (
+                  <div style={{marginTop:8}}>
+                    <label style={S.label}>Cheque No</label>
+                    <input style={S.input} placeholder="Cheque Number"
+                      value={formData.ChequeNo}
+                      onChange={e=>setFormData({...formData, ChequeNo: e.target.value})} />
+                  </div>
+                )}
+                {(formData.PaymentMethod === 'Online' || formData.PaymentMethod === 'Bank Transfer') && (
+                  <div style={{marginTop:8}}>
+                    <label style={S.label}>Bank / Reference Details</label>
+                    <input style={S.input} placeholder="Bank name or reference"
+                      value={formData.BankDetails}
+                      onChange={e=>setFormData({...formData, BankDetails: e.target.value})} />
+                  </div>
+                )}
               </div>
 
-              <div style={{display:'flex', gap:10, marginTop:20}}>
+              <div style={{marginTop:12, textAlign:'right', fontSize:16, fontWeight:700}}>
+                Grand Total: Rs.{getTotal().toFixed(2)} |
+                Balance: Rs.{(getTotal() - n(formData.ReceivedAmount)).toFixed(2)}
+              </div>
+
+              <div style={{display:'flex', gap:10, marginTop:16}}>
                 <button type="button" onClick={()=>setShowModal(false)} style={{...S.btn('#6b7280'), flex:1}}>Cancel</button>
                 <button type="submit" style={{...S.btn('#2563eb'), flex:1}}>Save Sale</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT MODAL */}
+      {showPayModal && selectedSale && (
+        <div style={S.overlay}>
+          <div style={{...S.modal, width:400}}>
+            <h3 style={{marginTop:0}}>Record Payment</h3>
+            <p style={{color:'#6b7280', fontSize:13}}>Invoice: {selectedSale.InvoiceNo} | Balance: Rs.{n(selectedSale.BalanceAmount).toFixed(2)}</p>
+            <form onSubmit={handlePaySubmit}>
+              <label style={S.label}>Amount *</label>
+              <input required type="number" style={S.input} value={payForm.amount}
+                onChange={e=>setPayForm({...payForm, amount: e.target.value})} />
+
+              <label style={{...S.label, marginTop:10}}>Payment Method *</label>
+              <select required style={S.input} value={payForm.method}
+                onChange={e=>setPayForm({...payForm, method: e.target.value})}>
+                <option>Cash</option>
+                <option>Cheque</option>
+                <option>Online</option>
+                <option>Bank Transfer</option>
+              </select>
+
+              {payForm.method === 'Cheque' && (
+                <div style={{marginTop:8}}>
+                  <label style={S.label}>Cheque No</label>
+                  <input style={S.input} value={payForm.chequeNo}
+                    onChange={e=>setPayForm({...payForm, chequeNo: e.target.value})} />
+                </div>
+              )}
+
+              {(payForm.method === 'Online' || payForm.method === 'Bank Transfer') && (
+                <div style={{marginTop:8}}>
+                  <label style={S.label}>Bank / Reference</label>
+                  <input style={S.input} value={payForm.bankDetails}
+                    onChange={e=>setPayForm({...payForm, bankDetails: e.target.value})} />
+                </div>
+              )}
+
+              <label style={{...S.label, marginTop:10}}>Notes</label>
+              <input style={S.input} value={payForm.notes}
+                onChange={e=>setPayForm({...payForm, notes: e.target.value})} />
+
+              <div style={{display:'flex', gap:10, marginTop:16}}>
+                <button type="button" onClick={()=>setShowPayModal(false)} style={{...S.btn('#6b7280'), flex:1}}>Cancel</button>
+                <button type="submit" style={{...S.btn('#16a34a'), flex:1}}>Record Payment</button>
               </div>
             </form>
           </div>
@@ -269,10 +420,10 @@ const S = {
   td:     { padding:'10px 12px', verticalAlign:'middle' },
   empty:  { textAlign:'center', padding:28, color:'#6b7280' },
   err:    { background:'#fef2f2', border:'1px solid #fca5a5', color:'#b91c1c', padding:'10px 14px', borderRadius:6, marginBottom:14, fontSize:14 },
-  btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500 }),
+  btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500, marginLeft:4 }),
   btnSm:  (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:4, padding:'4px 8px', cursor:'pointer', fontSize:12, fontWeight:500 }),
-  modalOverlay: { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
-  modal:      { background:'#fff', padding:24, borderRadius:8, width:'650px', maxWidth:'90%', maxHeight:'90vh', overflowY:'auto' },
-  label:      { display:'block', marginBottom:4, fontSize:13, fontWeight:600, color:'#374151' },
-  input:      { padding:'8px', borderRadius:4, border:'1px solid #d1d5db', width:'100%', boxSizing:'border-box' },
+  overlay: { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
+  modal:   { background:'#fff', padding:24, borderRadius:8, width:'680px', maxWidth:'95%', maxHeight:'90vh', overflowY:'auto' },
+  label:   { display:'block', marginBottom:4, fontSize:13, fontWeight:600, color:'#374151' },
+  input:   { padding:'8px', borderRadius:4, border:'1px solid #d1d5db', width:'100%', boxSizing:'border-box', fontSize:13 },
 };
