@@ -66,8 +66,9 @@ export function Purchases() {
     newItems[index][field] = value;
     if (field === 'ProductID') {
       const prod = products.find(p => String(p.ProductID) === String(value));
-      newItems[index].Stock = prod ? n(prod.CurrentQuantity) : 0;
-      newItems[index].Rate  = prod ? n(prod.Price) : 0;
+      newItems[index].Stock    = prod ? n(prod.CurrentQuantity) : 0;
+      newItems[index].MinStock = prod ? n(prod.MinimumQuantity) : 10;
+      newItems[index].Rate     = prod ? n(prod.Price) : 0;
     }
     if (field === 'Quantity' || field === 'Rate') {
       newItems[index].Amount = (Number(newItems[index].Quantity) || 0) * (Number(newItems[index].Rate) || 0);
@@ -75,7 +76,7 @@ export function Purchases() {
     setFormData({ ...formData, Items: newItems });
   };
 
-  const addItemRow = () => setFormData({ ...formData, Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }] });
+  const addItemRow = () => setFormData({ ...formData, Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10 }] });
   const removeItemRow = (i) => setFormData({ ...formData, Items: formData.Items.filter((_, idx) => idx !== i) });
   const getTotal = () => formData.Items.reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
 
@@ -97,7 +98,7 @@ export function Purchases() {
       setFormData({
         VendorID: '', PurchaseDate: new Date().toISOString().split('T')[0],
         Description: '', PaidAmount: 0, PaymentMethod: 'Cash', ChequeNo: '', BankDetails: '',
-        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
+        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10 }]
       });
       load();
     } catch (err) {
@@ -246,9 +247,20 @@ export function Purchases() {
                       <button type="button" onClick={()=>removeItemRow(idx)}
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
                     </div>
+                    {/* ✅ STOCK BALANCE WITH LOW STOCK WARNING */}
                     {item.ProductID && (
-                      <div style={{fontSize:11, color:'#6b7280', marginTop:2, paddingLeft:4}}>
-                        Current Stock: {n(item.Stock)}
+                      <div style={{
+                        fontSize:11, marginTop:3, paddingLeft:4,
+                        color: n(item.Stock) <= n(item.MinStock) ? '#dc2626' : '#16a34a',
+                        fontWeight: n(item.Stock) <= n(item.MinStock) ? 600 : 400
+                      }}>
+                        📦 Current Stock: {n(item.Stock)}
+                        {n(item.Stock) === 0
+                          ? ' ❌ Out of Stock!'
+                          : n(item.Stock) <= n(item.MinStock)
+                            ? ` ⚠️ Low Stock! (Min: ${n(item.MinStock)})`
+                            : ' ✓ In Stock'
+                        }
                       </div>
                     )}
                   </div>
