@@ -261,7 +261,7 @@ export default function Reports() {
 }
 
 // Reusable Components
-function TxTable({ rows, cols, empty }) {
+function TxTable({ rows = [], cols, empty }) {
   return (
     <div style={{ overflowX:'auto' }}>
       <div style={{ color:'#6b7280', fontSize:12, marginBottom:5 }}>{rows.length} record(s)</div>
