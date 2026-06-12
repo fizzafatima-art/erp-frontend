@@ -8,21 +8,23 @@ import Products  from './pages/Products';
 import Purchases from './pages/Purchases';
 import Sales     from './pages/Sales';
 import Stock     from './pages/Stock';
+import StockReport from './pages/StockReport';
 import Expenses  from './pages/Expenses';
 import Ledger    from './pages/Ledger';
 import Reports   from './pages/Reports';
 import NotFound  from './pages/NotFound';
 
 const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { path: '/vendors',   label: 'Vendors',   icon: '👥' },
-  { path: '/products',  label: 'Products',  icon: '📦' },
-  { path: '/purchases', label: 'Purchases', icon: '🛒' },
-  { path: '/sales',     label: 'Sales',     icon: '💳' },
-  { path: '/stock',     label: 'Stock',     icon: '📚' },
-  { path: '/expenses',  label: 'Expenses',  icon: '💸' },
-  { path: '/ledger',    label: 'Ledger',    icon: '📒' },
-  { path: '/reports',   label: 'Reports',   icon: '📈' },
+  { path: '/dashboard',    label: 'Dashboard',    icon: '📊' },
+  { path: '/vendors',      label: 'Vendors',      icon: '👥' },
+  { path: '/products',     label: 'Products',     icon: '📦' },
+  { path: '/purchases',    label: 'Purchases',    icon: '🛒' },
+  { path: '/sales',        label: 'Sales',        icon: '💳' },
+  { path: '/stock',        label: 'Stock',        icon: '📚' },
+  { path: '/stock-report', label: 'Stock Report', icon: '📊' }, // ← ADD
+  { path: '/expenses',     label: 'Expenses',     icon: '💸' },
+  { path: '/ledger',       label: 'Ledger',       icon: '📒' },
+  { path: '/reports',      label: 'Reports',      icon: '📈' },
 ];
 
 export default function App() {
@@ -78,6 +80,7 @@ export default function App() {
               <Route path="/products"   element={<Products />} />
               
               <Route path="/purchases"  element={<Purchases />} />
+              <Route path="/stock-report" element={<StockReport />} />
               <Route path="/sales"      element={<Sales />} />
               <Route path="/stock"      element={<Stock />} />
               <Route path="/expenses"   element={<Expenses />} />
