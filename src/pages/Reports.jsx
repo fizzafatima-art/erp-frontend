@@ -191,20 +191,20 @@ export default function Reports() {
           {tab==='Outstanding' && (
             <div>
                 <h3 style={{marginBottom:15}}>📢 Outstanding Customers (WhatsApp Ready)</h3>
-                <TxTable rows={data.vendorProfit} empty="No data" cols={[
-    { label:'Vendor', fn:r=>s(r.VendorName) },
-    { label:'Total Purchases', fn:r=>cur(r.TotalPurchases), color:'#2563eb' },
-    { label:'Paid', fn:r=>cur(r.TotalPaid), color:'#16a34a' },
-    { label:'Balance', fn:r=>cur(r.TotalBalance), color:'#dc2626' },
-                        { label:'Action', fn:r=> (
-                            <button 
-                                onClick={() => sendWhatsApp(r.VendorName, r.TotalOutstanding, r.City, r.Phone)}
-                                style={{...S.btn('#25D366'), padding:'4px 8px', fontSize:12}}
-                            >
-                                📱 WhatsApp
-                            </button>
-                        )}
-                    ]}
+                <TxTable rows={data.vendorProfit} empty="No data" 
+                cols={[
+    { label:'Customer', fn:r=>s(r.VendorName)||'—' },
+    { label:'City', fn:r=>s(r.City)||'—' },
+    { label:'Phone', fn:r=>s(r.Phone)||'—' },
+    { label:'Balance', fn:r=>cur(r.TotalOutstanding), color:'#dc2626' },
+    { label:'Action', fn:r=>(
+        <button 
+            onClick={() => sendWhatsApp(r.VendorName, r.TotalOutstanding, r.City, r.Phone)}
+            style={{...S.btn('#25D366'), padding:'4px 8px', fontSize:12}}>
+            📱 WhatsApp
+        </button>
+    )}
+]}
                 />
             </div>
           )}
