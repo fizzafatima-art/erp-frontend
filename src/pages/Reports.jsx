@@ -79,14 +79,15 @@ export default function Reports() {
       ]);
 
       setData({
-        sales:     extract(sR, ['data','sales']),
-        purchases: extract(pR, ['data','purchases']),
-        expenses:  extract(eR, ['data','expenses']),
-        outstanding: extract(outR, ['data']),
-        topProducts: extract(tpR, ['data']),
-        topCustomers: extract(tcR, ['data']),
-        cityReport: extract(cityR, ['data']),
-      });
+    sales:        extract(sR, ['data','sales']),
+    purchases:    extract(pR, ['data','purchases']),
+    expenses:     extract(eR, ['data','expenses']),
+    outstanding:  extract(outR, ['data']),
+    topProducts:  extract(tpR, ['data']),
+    topCustomers: extract(tcR, ['data']),
+    cityReport:   extract(cityR, ['data']),
+    vendorProfit: [],  // ← ye add karo
+});
     } catch { setError('Failed to load report data.'); }
     finally  { setLoading(false); }
   }, [from, to]);
