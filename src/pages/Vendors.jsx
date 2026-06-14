@@ -24,7 +24,8 @@ export function Vendors() {
 
   const [formData, setFormData] = useState(emptyForm);
 
-  useEffect(() => { load(); }, [showInactive]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+useEffect(() => { load(); }, [showInactive]);
 
   const load = async () => {
     try {
