@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { generateInvoicePDF } from '../utils/invoiceGenerator';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 
@@ -113,6 +114,34 @@ export function Sales() {
     }
   };
 
+  const handleDownloadInvoice = async (sale) => {
+    let items = sale.Items || sale.items || [];
+    // Agar items nahi aaye to API se fetch karo
+    if (!items.length) {
+      try {
+        const res = await axios.get(`${API}/sales/${sale.SaleID}`);
+        const data = res.data?.data || res.data;
+        items = data.Items || data.items || [];
+      } catch (e) {
+        items = [];
+      }
+    }
+    generateInvoicePDF({
+      type: 'sale',
+      invoiceNo: sale.InvoiceNo || '-',
+      date: fmt(sale.SaleDate),
+      partyLabel: 'Customer',
+      partyName: sale.CustomerName || '-',
+      partyPhone: sale.CustomerPhone || '',
+      partyCity: sale.CustomerCity || '',
+      items: items,
+      total: n(sale.TotalAmount),
+      paid: n(sale.PaidAmount || sale.ReceivedAmount),
+      balance: n(sale.BalanceAmount),
+      status: sale.PaymentStatus || 'Pending'
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -221,16 +250,21 @@ export function Sales() {
                         color:      r.PaymentStatus==='Paid'?'#16a34a':'#dc2626'
                       }}>{r.PaymentStatus}</span>
                     </td>
-                    <td style={{...S.td, display:'flex', gap:4}}>
-                      {r.PaymentStatus !== 'Returned' && r.PaymentStatus !== 'Paid' && (
-                        <button onClick={() => openPayModal(r)} style={S.btnSm('#16a34a')}>Pay</button>
-                      )}
-                      {r.PaymentStatus !== 'Returned' && (
-                        <button onClick={() => handleReturn(r.SaleID)} style={S.btnSm('#f59e0b')}>Return</button>
-                      )}
-                      {r.PaymentStatus === 'Returned' && (
-                        <span style={{color:'#9ca3af', fontSize:12}}>Returned</span>
-                      )}
+                    <td style={{...S.td}}>
+                      <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                        <button onClick={() => handleDownloadInvoice(r)} style={S.btnSm('#0284c7')} title="Download Invoice">
+                          🧾 Invoice
+                        </button>
+                        {r.PaymentStatus !== 'Returned' && r.PaymentStatus !== 'Paid' && (
+                          <button onClick={() => openPayModal(r)} style={S.btnSm('#16a34a')}>Pay</button>
+                        )}
+                        {r.PaymentStatus !== 'Returned' && (
+                          <button onClick={() => handleReturn(r.SaleID)} style={S.btnSm('#f59e0b')}>Return</button>
+                        )}
+                        {r.PaymentStatus === 'Returned' && (
+                          <span style={{color:'#9ca3af', fontSize:12}}>Returned</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

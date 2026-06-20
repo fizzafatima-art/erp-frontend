@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { generateInvoicePDF } from '../utils/invoiceGenerator';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 
@@ -79,6 +80,33 @@ export function Purchases() {
   const addItemRow = () => setFormData({ ...formData, Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10 }] });
   const removeItemRow = (i) => setFormData({ ...formData, Items: formData.Items.filter((_, idx) => idx !== i) });
   const getTotal = () => formData.Items.reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
+
+  const handleDownloadInvoice = async (purchase) => {
+    let items = purchase.Items || purchase.items || [];
+    if (!items.length) {
+      try {
+        const res = await axios.get(`${API}/purchases/${purchase.PurchaseID}`);
+        const data = res.data?.data || res.data;
+        items = data.Items || data.items || [];
+      } catch (e) {
+        items = [];
+      }
+    }
+    generateInvoicePDF({
+      type: 'purchase',
+      invoiceNo: purchase.InvoiceNo || '-',
+      date: fmt(purchase.PurchaseDate || purchase.purchaseDate),
+      partyLabel: 'Supplier',
+      partyName: purchase.VendorName || '-',
+      partyPhone: purchase.VendorPhone || purchase.vendorPhone || '',
+      partyCity: purchase.VendorCity || purchase.vendorCity || '',
+      items: items,
+      total: n(purchase.TotalAmount || purchase.totalAmount),
+      paid: n(purchase.PaidAmount || purchase.paidAmount),
+      balance: n(purchase.BalanceAmount || purchase.balanceAmount),
+      status: purchase.PaymentStatus || purchase.paymentStatus || 'Pending'
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -190,9 +218,14 @@ export function Purchases() {
                         </span>
                       </td>
                       <td style={S.td}>
-                        {!isPaid && (
-                          <button onClick={() => openPayModal(r)} style={S.btnSm('#16a34a')}>Pay</button>
-                        )}
+                        <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                          <button onClick={() => handleDownloadInvoice(r)} style={S.btnSm('#0284c7')} title="Download Invoice">
+                            🧾 Invoice
+                          </button>
+                          {!isPaid && (
+                            <button onClick={() => openPayModal(r)} style={S.btnSm('#16a34a')}>Pay</button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -247,7 +280,6 @@ export function Purchases() {
                       <button type="button" onClick={()=>removeItemRow(idx)}
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
                     </div>
-                    {/* ✅ STOCK BALANCE WITH LOW STOCK WARNING */}
                     {item.ProductID && (
                       <div style={{
                         fontSize:11, marginTop:3, paddingLeft:4,
