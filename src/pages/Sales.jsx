@@ -114,18 +114,29 @@ export function Sales() {
     }
   };
 
-  const handleDownloadInvoice = async (sale) => {
+   const handleDownloadInvoice = async (sale) => {
     let items = sale.Items || sale.items || [];
-    // Agar items nahi aaye to API se fetch karo
-    if (!items.length) {
-      try {
-        const res = await axios.get(`${API}/sales/${sale.SaleID}`);
-        const data = res.data?.data || res.data;
-        items = data.Items || data.items || [];
-      } catch (e) {
-        items = [];
-      }
-    }
+
+    // API se full items fetch karo
+    try {
+      const res = await axios.get(`${API}/sales/${sale.SaleID}`);
+      const data = res.data?.data || res.data;
+      const fetched = data.Items || data.items || [];
+      if (fetched.length > items.length) items = fetched;
+    } catch (e) {}
+
+    // ProductName resolve karo products list se
+    items = items.map(item => {
+      const pid = String(item.ProductID || item.productID || '');
+      const prod = products.find(p => String(p.ProductID) === pid);
+      return {
+        ProductName: item.ProductName || item.productName || prod?.ProductName || prod?.productName || pid || '-',
+        Quantity: Number(item.Quantity || item.quantity || 0),
+        Rate: Number(item.Rate || item.rate || 0),
+        Amount: Number(item.Amount || item.amount || 0),
+      };
+    });
+
     generateInvoicePDF({
       type: 'sale',
       invoiceNo: sale.InvoiceNo || '-',
