@@ -114,42 +114,66 @@ export function Sales() {
     }
   };
 
-   const handleDownloadInvoice = async (sale) => {
-    let items = sale.Items || sale.items || [];
+  const handleDownloadInvoice = async (sale) => {
+    let items = [];
 
-    // API se full items fetch karo
+    // ── 1. Detail API se items fetch karo ──────────────────
     try {
-      const res = await axios.get(`${API}/sales/${sale.SaleID}`);
+      const res  = await axios.get(`${API}/sales/${sale.SaleID}`);
       const data = res.data?.data || res.data;
-      const fetched = data.Items || data.items || [];
-      if (fetched.length > items.length) items = fetched;
-    } catch (e) {}
+      items =
+        data?.Items      ||
+        data?.items      ||
+        data?.SaleItems  ||
+        data?.saleItems  ||
+        data?.sale_items ||
+        data?.products   ||
+        [];
+    } catch (e) {
+      console.warn('Detail API failed, falling back to list data:', e.message);
+    }
 
-    // ProductName resolve karo products list se
-    items = items.map(item => {
-      const pid = String(item.ProductID || item.productID || '');
-      const prod = products.find(p => String(p.ProductID) === pid);
+    // ── 2. Fallback: list row mein jo tha woh lo ───────────
+    if (!items || items.length === 0) {
+      items =
+        sale.Items      ||
+        sale.items      ||
+        sale.SaleItems  ||
+        sale.saleItems  ||
+        [];
+    }
+
+    // ── 3. ProductName products[] se resolve karo ──────────
+    const resolvedItems = (items || []).map(item => {
+      const pid  = String(item.ProductID || item.productID || item.product_id || '');
+      const prod = products.find(p =>
+        String(p.ProductID || p.productID || p.product_id) === pid
+      );
       return {
-        ProductName: item.ProductName || item.productName || prod?.ProductName || prod?.productName || pid || '-',
-        Quantity: Number(item.Quantity || item.quantity || 0),
-        Rate: Number(item.Rate || item.rate || 0),
-        Amount: Number(item.Amount || item.amount || 0),
+        ProductName:
+          item.ProductName  || item.productName  || item.product_name ||
+          item.name         || item.Name         ||
+          prod?.ProductName || prod?.productName ||
+          pid || '-',
+        Quantity: Number(item.Quantity ?? item.quantity ?? item.qty ?? 0),
+        Rate:     Number(item.Rate     || item.rate     || item.price    || item.Price    || 0),
+        Amount:   Number(item.Amount   || item.amount   || item.total    || item.Total    || 0),
       };
     });
 
     generateInvoicePDF({
-      type: 'sale',
-      invoiceNo: sale.InvoiceNo || '-',
-      date: fmt(sale.SaleDate),
+      type:       'sale',
+      invoiceNo:  sale.InvoiceNo   || sale.invoiceNo   || '-',
+      date:       fmt(sale.SaleDate || sale.saleDate),
       partyLabel: 'Customer',
-      partyName: sale.CustomerName || '-',
-      partyPhone: sale.CustomerPhone || '',
-      partyCity: sale.CustomerCity || '',
-      items: items,
-      total: n(sale.TotalAmount),
-      paid: n(sale.PaidAmount || sale.ReceivedAmount),
-      balance: n(sale.BalanceAmount),
-      status: sale.PaymentStatus || 'Pending'
+      partyName:  sale.CustomerName  || sale.customerName  || '-',
+      partyPhone: sale.CustomerPhone || sale.customerPhone || '',
+      partyCity:  sale.CustomerCity  || sale.customerCity  || '',
+      items:      resolvedItems,
+      total:      n(sale.TotalAmount    || sale.totalAmount),
+      paid:       n(sale.PaidAmount     || sale.ReceivedAmount || sale.paidAmount || 0),
+      balance:    n(sale.BalanceAmount  || sale.balanceAmount  || 0),
+      status:     sale.PaymentStatus   || sale.paymentStatus   || 'Pending',
     });
   };
 

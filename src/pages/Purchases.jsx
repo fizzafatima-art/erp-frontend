@@ -81,42 +81,66 @@ export function Purchases() {
   const removeItemRow = (i) => setFormData({ ...formData, Items: formData.Items.filter((_, idx) => idx !== i) });
   const getTotal = () => formData.Items.reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
 
-   const handleDownloadInvoice = async (purchase) => {
-    let items = purchase.Items || purchase.items || [];
+  const handleDownloadInvoice = async (purchase) => {
+    let items = [];
 
-    // API se full items fetch karo
+    // ── 1. Detail API se items fetch karo ──────────────────
     try {
-      const res = await axios.get(`${API}/purchases/${purchase.PurchaseID}`);
+      const res  = await axios.get(`${API}/purchases/${purchase.PurchaseID}`);
       const data = res.data?.data || res.data;
-      const fetched = data.Items || data.items || [];
-      if (fetched.length > items.length) items = fetched;
-    } catch (e) {}
+      items =
+        data?.Items         ||
+        data?.items         ||
+        data?.PurchaseItems ||
+        data?.purchaseItems ||
+        data?.purchase_items||
+        data?.products      ||
+        [];
+    } catch (e) {
+      console.warn('Detail API failed, falling back to list data:', e.message);
+    }
 
-    // ProductName resolve karo products list se
-    items = items.map(item => {
-      const pid = String(item.ProductID || item.productID || '');
-      const prod = products.find(p => String(p.ProductID) === pid);
+    // ── 2. Fallback: list row mein jo tha woh lo ───────────
+    if (!items || items.length === 0) {
+      items =
+        purchase.Items         ||
+        purchase.items         ||
+        purchase.PurchaseItems ||
+        purchase.purchaseItems ||
+        [];
+    }
+
+    // ── 3. ProductName products[] se resolve karo ──────────
+    const resolvedItems = (items || []).map(item => {
+      const pid  = String(item.ProductID || item.productID || item.product_id || '');
+      const prod = products.find(p =>
+        String(p.ProductID || p.productID || p.product_id) === pid
+      );
       return {
-        ProductName: item.ProductName || item.productName || prod?.ProductName || prod?.productName || pid || '-',
-        Quantity: Number(item.Quantity || item.quantity || 0),
-        Rate: Number(item.Rate || item.rate || 0),
-        Amount: Number(item.Amount || item.amount || 0),
+        ProductName:
+          item.ProductName  || item.productName  || item.product_name ||
+          item.name         || item.Name         ||
+          prod?.ProductName || prod?.productName ||
+          pid || '-',
+        Quantity: Number(item.Quantity ?? item.quantity ?? item.qty ?? 0),
+        Rate:     Number(item.Rate     || item.rate     || item.price    || item.Price    || 0),
+        Amount:   Number(item.Amount   || item.amount   || item.total    || item.Total    || 0),
       };
     });
 
     generateInvoicePDF({
-      type: 'purchase',
-      invoiceNo: purchase.InvoiceNo || '-',
-      date: fmt(purchase.PurchaseDate || purchase.purchaseDate),
+      type:       'purchase',
+      invoiceNo:  purchase.InvoiceNo      || purchase.invoiceNo      || '-',
+      date:       fmt(purchase.PurchaseDate || purchase.purchaseDate),
       partyLabel: 'Supplier',
-      partyName: purchase.VendorName || '-',
-      partyPhone: purchase.VendorPhone || purchase.vendorPhone || '',
-      partyCity: purchase.VendorCity || purchase.vendorCity || '',
-      items: items,
-      total: n(purchase.TotalAmount || purchase.totalAmount),
-      paid: n(purchase.PaidAmount || purchase.paidAmount),
-      balance: n(purchase.BalanceAmount || purchase.balanceAmount),
-      status: purchase.PaymentStatus || purchase.paymentStatus || 'Pending'
+      partyName:  purchase.VendorName     || purchase.vendorName     || '-',
+      partyPhone: purchase.VendorPhone    || purchase.vendorPhone    || '',
+      partyCity:  purchase.VendorCity     || purchase.vendorCity     || '',
+      items:      resolvedItems,
+      total:      n(purchase.TotalAmount    || purchase.totalAmount),
+      paid:       n(purchase.PaidAmount     || purchase.paidAmount   || 0),
+      balance:    n(purchase.BalanceAmount  || purchase.balanceAmount|| 0),
+      status:     purchase.PaymentStatus   || purchase.paymentStatus  || 'Pending',
     });
   };
 
