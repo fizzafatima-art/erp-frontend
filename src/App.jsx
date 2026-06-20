@@ -12,6 +12,7 @@ import StockReport from './pages/StockReport';
 import Expenses  from './pages/Expenses';
 import Ledger    from './pages/Ledger';
 import Reports   from './pages/Reports';
+import { WarehouseReport } from './pages/WarehouseReport';
 import NotFound  from './pages/NotFound';
 
 const NAV_ITEMS = [
@@ -86,6 +87,7 @@ export default function App() {
               <Route path="/expenses"   element={<Expenses />} />
               <Route path="/ledger"     element={<Ledger />} />
               <Route path="/reports"    element={<Reports />} />
+              <Route path="/warehouse-report" element={<WarehouseReport />} />
               <Route path="*"           element={<NotFound />} />
             </Routes>
           </main>

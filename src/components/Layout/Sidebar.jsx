@@ -14,6 +14,7 @@ export default function Sidebar() {
     { path: '/purchases', label: '🛒 Purchases', icon: '🛒' },
     { path: '/sales', label: '💳 Sales', icon: '💳' },
     { path: '/stock', label: '📚 Stock', icon: '📚' },
+    { path: '/warehouse-report', label: '🏭 Warehouse', icon: '🏭' },
     { path: '/expenses', label: '💸 Expenses', icon: '💸' },
     { path: '/ledger', label: '📒 Ledger', icon: '📒' },
     { path: '/reports', label: '📈 Reports', icon: '📈' },
