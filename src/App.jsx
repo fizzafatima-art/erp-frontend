@@ -1,33 +1,35 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 
-import Dashboard  from './pages/Dashboard';
-import Vendors    from './pages/Vendors';
-import Products   from './pages/Products';
-import Purchases  from './pages/Purchases';
-import Sales      from './pages/Sales';
-import Stock      from './pages/Stock';
-import StockReport from './pages/StockReport';
-import Expenses   from './pages/Expenses';
-import Ledger     from './pages/Ledger';
-import Reports    from './pages/Reports';
-import Warehouses from './pages/Warehouses';
+import Dashboard        from './pages/Dashboard';
+import Vendors          from './pages/Vendors';
+import Products         from './pages/Products';
+import Purchases        from './pages/Purchases';
+import Sales            from './pages/Sales';
+import Stock            from './pages/Stock';
+import StockReport      from './pages/StockReport';
+import Expenses         from './pages/Expenses';
+import Ledger           from './pages/Ledger';
+import Reports          from './pages/Reports';
+import Warehouses       from './pages/Warehouses';
 import { WarehouseReport } from './pages/WarehouseReport';
-import NotFound   from './pages/NotFound';
+import BankReconciliation from './pages/BankReconciliation';
+import NotFound         from './pages/NotFound';
 
 const NAV_ITEMS = [
-  { path: '/dashboard',        label: 'Dashboard',        icon: '📊' },
-  { path: '/vendors',          label: 'Vendors',          icon: '👥' },
-  { path: '/products',         label: 'Products',         icon: '📦' },
-  { path: '/purchases',        label: 'Purchases',        icon: '🛒' },
-  { path: '/sales',            label: 'Sales',            icon: '💳' },
-  { path: '/stock',            label: 'Stock',            icon: '📚' },
-  { path: '/stock-report',     label: 'Stock Report',     icon: '📊' },
-  { path: '/expenses',         label: 'Expenses',         icon: '💸' },
-  { path: '/ledger',           label: 'Ledger',           icon: '📒' },
-  { path: '/reports',          label: 'Reports',          icon: '📈' },
-  { path: '/warehouses',       label: 'Warehouses',       icon: '🏭' },
-  { path: '/warehouse-report', label: 'Warehouse Report', icon: '📦' },
+  { path: '/dashboard',           label: 'Dashboard',           icon: '📊' },
+  { path: '/vendors',             label: 'Vendors',             icon: '👥' },
+  { path: '/products',            label: 'Products',            icon: '📦' },
+  { path: '/purchases',           label: 'Purchases',           icon: '🛒' },
+  { path: '/sales',               label: 'Sales',               icon: '💳' },
+  { path: '/stock',               label: 'Stock',               icon: '📚' },
+  { path: '/stock-report',        label: 'Stock Report',        icon: '📊' },
+  { path: '/expenses',            label: 'Expenses',            icon: '💸' },
+  { path: '/ledger',              label: 'Ledger',              icon: '📒' },
+  { path: '/reports',             label: 'Reports',             icon: '📈' },
+  { path: '/warehouses',          label: 'Warehouses',          icon: '🏭' },
+  { path: '/warehouse-report',    label: 'Warehouse Report',    icon: '📦' },
+  { path: '/bank-reconciliation', label: 'Bank Reconciliation', icon: '🏦' },
 ];
 
 export default function App() {
@@ -75,20 +77,21 @@ export default function App() {
           </header>
           <main style={S.content}>
             <Routes>
-              <Route path="/"                 element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard"        element={<Dashboard />} />
-              <Route path="/vendors"          element={<Vendors />} />
-              <Route path="/products"         element={<Products />} />
-              <Route path="/purchases"        element={<Purchases />} />
-              <Route path="/sales"            element={<Sales />} />
-              <Route path="/stock"            element={<Stock />} />
-              <Route path="/stock-report"     element={<StockReport />} />
-              <Route path="/expenses"         element={<Expenses />} />
-              <Route path="/ledger"           element={<Ledger />} />
-              <Route path="/reports"          element={<Reports />} />
-              <Route path="/warehouses"       element={<Warehouses />} />
-              <Route path="/warehouse-report" element={<WarehouseReport />} />
-              <Route path="*"                 element={<NotFound />} />
+              <Route path="/"                      element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard"             element={<Dashboard />} />
+              <Route path="/vendors"               element={<Vendors />} />
+              <Route path="/products"              element={<Products />} />
+              <Route path="/purchases"             element={<Purchases />} />
+              <Route path="/sales"                 element={<Sales />} />
+              <Route path="/stock"                 element={<Stock />} />
+              <Route path="/stock-report"          element={<StockReport />} />
+              <Route path="/expenses"              element={<Expenses />} />
+              <Route path="/ledger"                element={<Ledger />} />
+              <Route path="/reports"               element={<Reports />} />
+              <Route path="/warehouses"            element={<Warehouses />} />
+              <Route path="/warehouse-report"      element={<WarehouseReport />} />
+              <Route path="/bank-reconciliation"   element={<BankReconciliation />} />
+              <Route path="*"                      element={<NotFound />} />
             </Routes>
           </main>
         </div>
