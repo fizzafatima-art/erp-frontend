@@ -23,6 +23,7 @@ export function Sales() {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts]   = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
 
   const [formData, setFormData] = useState({
     CustomerID: '',
@@ -31,6 +32,7 @@ export function Sales() {
     ReceivedAmount: 0,
     PaymentMethod: 'Cash',
     ChequeNo: '',
+    BankAccountID: '',
     BankDetails: '',
     Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
   });
@@ -39,6 +41,7 @@ export function Sales() {
     amount: '',
     method: 'Cash',
     chequeNo: '',
+    bankAccountID: '',
     bankDetails: '',
     notes: ''
   });
@@ -61,6 +64,14 @@ export function Sales() {
       const pRes = await axios.get(`${API}/products`);
       const allProds = Array.isArray(pRes.data?.data) ? pRes.data.data : [];
       setProducts(allProds);
+
+      // Bank accounts load karo
+      try {
+        const bRes = await axios.get(`${API}/bank-reconciliation/accounts`);
+        setBankAccounts(Array.isArray(bRes.data?.data) ? bRes.data.data : []);
+      } catch (e) {
+        console.warn('Bank accounts load failed:', e.message);
+      }
     } catch (e) { console.error("Dropdown Error", e); }
   };
 
@@ -123,48 +134,26 @@ export function Sales() {
 
   const handleDownloadInvoice = async (sale) => {
     let items = [];
-
-    // ── 1. Detail API se items fetch karo ──────────────────
     try {
       const res  = await axios.get(`${API}/sales/${sale.SaleID}`);
       const data = res.data?.data || res.data;
-      items =
-        data?.Items      ||
-        data?.items      ||
-        data?.SaleItems  ||
-        data?.saleItems  ||
-        data?.sale_items ||
-        data?.products   ||
-        [];
+      items = data?.Items || data?.items || data?.SaleItems || data?.saleItems || data?.sale_items || data?.products || [];
     } catch (e) {
-      console.warn('Detail API failed, falling back to list data:', e.message);
+      console.warn('Detail API failed:', e.message);
     }
 
-    // ── 2. Fallback: list row mein jo tha woh lo ───────────
     if (!items || items.length === 0) {
-      items =
-        sale.Items      ||
-        sale.items      ||
-        sale.SaleItems  ||
-        sale.saleItems  ||
-        [];
+      items = sale.Items || sale.items || sale.SaleItems || sale.saleItems || [];
     }
 
-    // ── 3. ProductName products[] se resolve karo ──────────
     const resolvedItems = (items || []).map(item => {
       const pid  = String(item.ProductID || item.productID || item.product_id || '');
-      const prod = products.find(p =>
-        String(p.ProductID || p.productID || p.product_id) === pid
-      );
+      const prod = products.find(p => String(p.ProductID || p.productID || p.product_id) === pid);
       return {
-        ProductName:
-          item.ProductName  || item.productName  || item.product_name ||
-          item.name         || item.Name         ||
-          prod?.ProductName || prod?.productName ||
-          pid || '-',
+        ProductName: item.ProductName || item.productName || item.product_name || item.name || item.Name || prod?.ProductName || prod?.productName || pid || '-',
         Quantity: Number(item.Quantity ?? item.quantity ?? item.qty ?? 0),
-        Rate:     Number(item.Rate     || item.rate     || item.price    || item.Price    || 0),
-        Amount:   Number(item.Amount   || item.amount   || item.total    || item.Total    || 0),
+        Rate:     Number(item.Rate || item.rate || item.price || item.Price || 0),
+        Amount:   Number(item.Amount || item.amount || item.total || item.Total || 0),
       };
     });
 
@@ -195,6 +184,10 @@ export function Sales() {
         Description:    formData.Description,
         TotalAmount:    total,
         ReceivedAmount: paid,
+        PaymentMethod:  formData.PaymentMethod,
+        ChequeNo:       formData.ChequeNo,
+        BankAccountID:  formData.BankAccountID || null,
+        BankDetails:    formData.BankDetails,
         Items:          formData.Items,
       };
       await axios.post(`${API}/sales`, payload);
@@ -203,7 +196,7 @@ export function Sales() {
       setFormData({
         CustomerID: '', SaleDate: new Date().toISOString().split('T')[0],
         Description: '', ReceivedAmount: 0, PaymentMethod: 'Cash',
-        ChequeNo: '', BankDetails: '',
+        ChequeNo: '', BankAccountID: '', BankDetails: '',
         Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
       });
       load();
@@ -214,7 +207,7 @@ export function Sales() {
 
   const openPayModal = (sale) => {
     setSelectedSale(sale);
-    setPayForm({ amount: n(sale.BalanceAmount).toFixed(2), method: 'Cash', chequeNo: '', bankDetails: '', notes: '' });
+    setPayForm({ amount: n(sale.BalanceAmount).toFixed(2), method: 'Cash', chequeNo: '', bankAccountID: '', bankDetails: '', notes: '' });
     setShowPayModal(true);
   };
 
@@ -222,11 +215,12 @@ export function Sales() {
     e.preventDefault();
     try {
       await axios.put(`${API}/sales/${selectedSale.SaleID}/payment`, {
-        amount:      Number(payForm.amount),
-        method:      payForm.method,
-        chequeNo:    payForm.chequeNo,
-        bankDetails: payForm.bankDetails,
-        notes:       payForm.notes,
+        amount:        Number(payForm.amount),
+        method:        payForm.method,
+        chequeNo:      payForm.chequeNo,
+        bankAccountID: payForm.bankAccountID || null,
+        bankDetails:   payForm.bankDetails,
+        notes:         payForm.notes,
       });
       alert('Payment recorded!');
       setShowPayModal(false);
@@ -242,6 +236,47 @@ export function Sales() {
   });
 
   const totalSales = filtered.reduce((sum, r) => sum + n(r.TotalAmount), 0);
+
+  // Bank field — new sale + pay modal dono ke liye reusable
+  const BankFields = ({ method, bankAccountID, setBankAccountID, chequeNo, setChequeNo, bankDetails, setBankDetails }) => (
+    <>
+      {(method === 'Online' || method === 'Bank Transfer') && (
+        <div style={{ marginTop: 8 }}>
+          <label style={S.label}>🏦 Bank Account <span style={{ color: '#dc2626' }}>*</span></label>
+          <select
+            required
+            style={S.input}
+            value={bankAccountID}
+            onChange={e => setBankAccountID(e.target.value)}
+          >
+            <option value="">-- Select Bank Account --</option>
+            {bankAccounts.length === 0 && (
+              <option disabled>No bank accounts found — add from Bank Reconciliation</option>
+            )}
+            {bankAccounts.map(b => (
+              <option key={b.BankAccountID} value={b.BankAccountID}>
+                {b.BankName} — {b.AccountNumber} ({b.AccountTitle})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {method === 'Cheque' && (
+        <div style={{ marginTop: 8 }}>
+          <label style={S.label}>Cheque No</label>
+          <input style={S.input} placeholder="Cheque Number"
+            value={chequeNo} onChange={e => setChequeNo(e.target.value)} />
+        </div>
+      )}
+      {(method === 'Online' || method === 'Bank Transfer') && (
+        <div style={{ marginTop: 8 }}>
+          <label style={S.label}>Reference / Transaction ID</label>
+          <input style={S.input} placeholder="e.g. TXN123456"
+            value={bankDetails} onChange={e => setBankDetails(e.target.value)} />
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div style={{ padding:24, fontFamily:'Segoe UI,sans-serif' }}>
@@ -397,7 +432,7 @@ export function Sales() {
                   <div style={{flex:1}}>
                     <label style={S.label}>Payment Method</label>
                     <select style={S.input} value={formData.PaymentMethod}
-                      onChange={e=>setFormData({...formData, PaymentMethod: e.target.value})}>
+                      onChange={e=>setFormData({...formData, PaymentMethod: e.target.value, BankAccountID: '', BankDetails: '', ChequeNo: ''})}>
                       <option>Cash</option>
                       <option>Cheque</option>
                       <option>Online</option>
@@ -405,22 +440,15 @@ export function Sales() {
                     </select>
                   </div>
                 </div>
-                {formData.PaymentMethod === 'Cheque' && (
-                  <div style={{marginTop:8}}>
-                    <label style={S.label}>Cheque No</label>
-                    <input style={S.input} placeholder="Cheque Number"
-                      value={formData.ChequeNo}
-                      onChange={e=>setFormData({...formData, ChequeNo: e.target.value})} />
-                  </div>
-                )}
-                {(formData.PaymentMethod === 'Online' || formData.PaymentMethod === 'Bank Transfer') && (
-                  <div style={{marginTop:8}}>
-                    <label style={S.label}>Bank / Reference Details</label>
-                    <input style={S.input} placeholder="Bank name or reference"
-                      value={formData.BankDetails}
-                      onChange={e=>setFormData({...formData, BankDetails: e.target.value})} />
-                  </div>
-                )}
+                <BankFields
+                  method={formData.PaymentMethod}
+                  bankAccountID={formData.BankAccountID}
+                  setBankAccountID={v => setFormData({...formData, BankAccountID: v})}
+                  chequeNo={formData.ChequeNo}
+                  setChequeNo={v => setFormData({...formData, ChequeNo: v})}
+                  bankDetails={formData.BankDetails}
+                  setBankDetails={v => setFormData({...formData, BankDetails: v})}
+                />
               </div>
 
               <div style={{marginTop:12, textAlign:'right', fontSize:16, fontWeight:700}}>
@@ -440,9 +468,11 @@ export function Sales() {
       {/* PAYMENT MODAL */}
       {showPayModal && selectedSale && (
         <div style={S.overlay}>
-          <div style={{...S.modal, width:400}}>
+          <div style={{...S.modal, width:440}}>
             <h3 style={{marginTop:0}}>Record Payment</h3>
-            <p style={{color:'#6b7280', fontSize:13}}>Invoice: {selectedSale.InvoiceNo} | Balance: Rs.{n(selectedSale.BalanceAmount).toFixed(2)}</p>
+            <p style={{color:'#6b7280', fontSize:13}}>
+              Invoice: <strong>{selectedSale.InvoiceNo}</strong> | Balance: <strong>Rs.{n(selectedSale.BalanceAmount).toFixed(2)}</strong>
+            </p>
             <form onSubmit={handlePaySubmit}>
               <label style={S.label}>Amount *</label>
               <input required type="number" style={S.input} value={payForm.amount}
@@ -450,32 +480,32 @@ export function Sales() {
 
               <label style={{...S.label, marginTop:10}}>Payment Method *</label>
               <select required style={S.input} value={payForm.method}
-                onChange={e=>setPayForm({...payForm, method: e.target.value})}>
+                onChange={e=>setPayForm({...payForm, method: e.target.value, bankAccountID: '', bankDetails: '', chequeNo: ''})}>
                 <option>Cash</option>
                 <option>Cheque</option>
                 <option>Online</option>
                 <option>Bank Transfer</option>
               </select>
 
-              {payForm.method === 'Cheque' && (
-                <div style={{marginTop:8}}>
-                  <label style={S.label}>Cheque No</label>
-                  <input style={S.input} value={payForm.chequeNo}
-                    onChange={e=>setPayForm({...payForm, chequeNo: e.target.value})} />
-                </div>
-              )}
-
-              {(payForm.method === 'Online' || payForm.method === 'Bank Transfer') && (
-                <div style={{marginTop:8}}>
-                  <label style={S.label}>Bank / Reference</label>
-                  <input style={S.input} value={payForm.bankDetails}
-                    onChange={e=>setPayForm({...payForm, bankDetails: e.target.value})} />
-                </div>
-              )}
+              <BankFields
+                method={payForm.method}
+                bankAccountID={payForm.bankAccountID}
+                setBankAccountID={v => setPayForm({...payForm, bankAccountID: v})}
+                chequeNo={payForm.chequeNo}
+                setChequeNo={v => setPayForm({...payForm, chequeNo: v})}
+                bankDetails={payForm.bankDetails}
+                setBankDetails={v => setPayForm({...payForm, bankDetails: v})}
+              />
 
               <label style={{...S.label, marginTop:10}}>Notes</label>
               <input style={S.input} value={payForm.notes}
                 onChange={e=>setPayForm({...payForm, notes: e.target.value})} />
+
+              {(payForm.method === 'Online' || payForm.method === 'Bank Transfer') && !payForm.bankAccountID && (
+                <div style={{marginTop:8, padding:'8px 12px', background:'#fef3c7', border:'1px solid #fcd34d', borderRadius:4, fontSize:12, color:'#92400e'}}>
+                  ⚠️ Bank Transfer ke liye bank account select karna zaruri hai — warna Bank Reconciliation mein nahi ayega.
+                </div>
+              )}
 
               <div style={{display:'flex', gap:10, marginTop:16}}>
                 <button type="button" onClick={()=>setShowPayModal(false)} style={{...S.btn('#6b7280'), flex:1}}>Cancel</button>
