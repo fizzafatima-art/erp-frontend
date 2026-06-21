@@ -7,7 +7,6 @@ const s = (v) => (v == null ? '' : String(v));
 
 export function Warehouses() {
   const [warehouses, setWarehouses]     = useState([]);
-  const [products, setProducts]         = useState([]);
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState('');
   const [showModal, setShowModal]       = useState(false);
@@ -26,7 +25,7 @@ export function Warehouses() {
 
   const [fromStock, setFromStock] = useState([]);
 
-  useEffect(() => { load(); loadProducts(); }, []);
+ 
 
   const load = async () => {
     try {
@@ -37,12 +36,7 @@ export function Warehouses() {
     finally { setLoading(false); }
   };
 
-  const loadProducts = async () => {
-    try {
-      const res = await axios.get(`${API}/products`);
-      setProducts(Array.isArray(res.data?.data) ? res.data.data : []);
-    } catch (e) { console.error(e); }
-  };
+ 
 
   const loadFromStock = async (warehouseId) => {
     if (!warehouseId) return setFromStock([]);
