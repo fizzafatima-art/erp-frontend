@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -28,15 +28,6 @@ export function WarehouseReport() {
   const [showDetail, setShowDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
-  useEffect(() => { loadWarehouses(); }, []);
-
-// eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (tab === 'summary') loadSummary();
-    else if (tab === 'stock') loadStock();
-    else if (tab === 'transfers') loadTransfers();
-  }, [tab, filterWarehouse, filterFrom, filterTo, filterDateFrom, filterDateTo]);
-
   const loadWarehouses = async () => {
     try {
       const res = await axios.get(`${API}/warehouse/warehouses`);
@@ -44,16 +35,16 @@ export function WarehouseReport() {
     } catch (e) { console.error(e); }
   };
 
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async () => {
     try {
       setLoading(true); setError('');
       const res = await axios.get(`${API}/warehouse/warehouse-summary`);
       setSummary(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (e) { setError('Failed to load summary.'); }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  const loadStock = async () => {
+  const loadStock = useCallback(async () => {
     try {
       setLoading(true); setError('');
       const params = filterWarehouse ? `?warehouseId=${filterWarehouse}` : '';
@@ -61,9 +52,9 @@ export function WarehouseReport() {
       setStock(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (e) { setError('Failed to load stock.'); }
     finally { setLoading(false); }
-  };
+  }, [filterWarehouse]);
 
-  const loadTransfers = async () => {
+  const loadTransfers = useCallback(async () => {
     try {
       setLoading(true); setError('');
       const p = new URLSearchParams();
@@ -75,7 +66,15 @@ export function WarehouseReport() {
       setTransfers(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (e) { setError('Failed to load transfers.'); }
     finally { setLoading(false); }
-  };
+  }, [filterFrom, filterTo, filterDateFrom, filterDateTo]);
+
+  useEffect(() => { loadWarehouses(); }, []);
+
+  useEffect(() => {
+    if (tab === 'summary') loadSummary();
+    else if (tab === 'stock') loadStock();
+    else if (tab === 'transfers') loadTransfers();
+  }, [tab, loadSummary, loadStock, loadTransfers]);
 
   const openDetail = async (id) => {
     try {
