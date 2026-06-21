@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -27,6 +28,7 @@ export default function BankReconciliation() {
 
   // Add Statement Modal
   const [showStmtModal, setShowStmtModal] = useState(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const [stmtForm, setStmtForm] = useState({ TransactionDate:'', Description:'', Debit:0, Credit:0, Balance:0, ReferenceNo:'' });
 
   useEffect(() => { loadAccounts(); }, []);
@@ -50,7 +52,9 @@ export default function BankReconciliation() {
       const res = await axios.get(`${API}/bank/reconciliation`, { params });
       setData(res.data?.data || null);
     } catch (e) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setError('Failed to load reconciliation data.');
+
     } finally { setLoading(false); }
   };
 

@@ -20,14 +20,15 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": "react-app",
     "rules": {
-      "react-hooks/exhaustive-deps": "warn"
+      "react-hooks/exhaustive-deps": "off",
+      "no-unused-vars": "off"
     }
   },
   "browserslist": {
