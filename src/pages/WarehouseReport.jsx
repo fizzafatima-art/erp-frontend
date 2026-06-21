@@ -29,7 +29,7 @@ export function WarehouseReport() {
   const [detailData, setDetailData] = useState(null);
 
   useEffect(() => { loadWarehouses(); }, []);
-
+  
   // eslint-disable-next-line react-hooks/exhaustive-deps
 useEffect(() => {
     if (tab === 'summary') loadSummary();
