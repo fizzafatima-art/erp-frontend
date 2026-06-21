@@ -31,7 +31,7 @@ export function WarehouseReport() {
   useEffect(() => { loadWarehouses(); }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
+useEffect(() => {
     if (tab === 'summary') loadSummary();
     else if (tab === 'stock') loadStock();
     else if (tab === 'transfers') loadTransfers();
