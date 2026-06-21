@@ -16,16 +16,17 @@ import { WarehouseReport } from './pages/WarehouseReport';
 import NotFound  from './pages/NotFound';
 
 const NAV_ITEMS = [
-  { path: '/dashboard',    label: 'Dashboard',    icon: '📊' },
-  { path: '/vendors',      label: 'Vendors',      icon: '👥' },
-  { path: '/products',     label: 'Products',     icon: '📦' },
-  { path: '/purchases',    label: 'Purchases',    icon: '🛒' },
-  { path: '/sales',        label: 'Sales',        icon: '💳' },
-  { path: '/stock',        label: 'Stock',        icon: '📚' },
-  { path: '/stock-report', label: 'Stock Report', icon: '📊' }, // ← ADD
-  { path: '/expenses',     label: 'Expenses',     icon: '💸' },
-  { path: '/ledger',       label: 'Ledger',       icon: '📒' },
-  { path: '/reports',      label: 'Reports',      icon: '📈' },
+  { path: '/dashboard',        label: 'Dashboard',        icon: '📊' },
+  { path: '/vendors',          label: 'Vendors',          icon: '👥' },
+  { path: '/products',         label: 'Products',         icon: '📦' },
+  { path: '/purchases',        label: 'Purchases',        icon: '🛒' },
+  { path: '/sales',            label: 'Sales',            icon: '💳' },
+  { path: '/stock',            label: 'Stock',            icon: '📚' },
+  { path: '/stock-report',     label: 'Stock Report',     icon: '📊' },
+  { path: '/expenses',         label: 'Expenses',         icon: '💸' },
+  { path: '/ledger',           label: 'Ledger',           icon: '📒' },
+  { path: '/reports',          label: 'Reports',          icon: '📈' },
+  { path: '/warehouse-report', label: 'Warehouses',       icon: '🏭' },
 ];
 
 export default function App() {
