@@ -22,6 +22,7 @@ export function Purchases() {
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [vendors, setVendors]     = useState([]);
   const [products, setProducts]   = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
 
   const [formData, setFormData] = useState({
     VendorID: '',
@@ -31,7 +32,7 @@ export function Purchases() {
     PaymentMethod: 'Cash',
     ChequeNo: '',
     BankDetails: '',
-    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
+    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10, WarehouseID: '' }]
   });
 
   const [payForm, setPayForm] = useState({
@@ -45,6 +46,9 @@ export function Purchases() {
       const vRes = await axios.get(`${API}/vendors`);
       const allVendors = Array.isArray(vRes.data?.data) ? vRes.data.data : [];
       setVendors(allVendors.filter(v => v.VendorType === 'Supplier' || v.VendorType === 'Vendor' || v.VendorType === 'Both'));
+
+      const wRes = await axios.get(`${API}/warehouse/warehouses`);
+      setWarehouses(Array.isArray(wRes.data?.data) ? wRes.data.data : []);
 
       const pRes = await axios.get(`${API}/products`);
       setProducts(Array.isArray(pRes.data?.data) ? pRes.data.data : []);
@@ -77,70 +81,45 @@ export function Purchases() {
     setFormData({ ...formData, Items: newItems });
   };
 
-  const addItemRow = () => setFormData({ ...formData, Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10 }] });
+  const addItemRow = () => setFormData({ ...formData, Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10, WarehouseID: '' }] });
   const removeItemRow = (i) => setFormData({ ...formData, Items: formData.Items.filter((_, idx) => idx !== i) });
   const getTotal = () => formData.Items.reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
 
   const handleDownloadInvoice = async (purchase) => {
     let items = [];
-
-    // ── 1. Detail API se items fetch karo ──────────────────
     try {
       const res  = await axios.get(`${API}/purchases/${purchase.PurchaseID}`);
       const data = res.data?.data || res.data;
-      items =
-        data?.Items         ||
-        data?.items         ||
-        data?.PurchaseItems ||
-        data?.purchaseItems ||
-        data?.purchase_items||
-        data?.products      ||
-        [];
+      items = data?.Items || data?.items || data?.PurchaseItems || [];
     } catch (e) {
-      console.warn('Detail API failed, falling back to list data:', e.message);
+      console.warn('Detail API failed:', e.message);
     }
-
-    // ── 2. Fallback: list row mein jo tha woh lo ───────────
     if (!items || items.length === 0) {
-      items =
-        purchase.Items         ||
-        purchase.items         ||
-        purchase.PurchaseItems ||
-        purchase.purchaseItems ||
-        [];
+      items = purchase.Items || purchase.items || purchase.PurchaseItems || [];
     }
-
-    // ── 3. ProductName products[] se resolve karo ──────────
     const resolvedItems = (items || []).map(item => {
-      const pid  = String(item.ProductID || item.productID || item.product_id || '');
-      const prod = products.find(p =>
-        String(p.ProductID || p.productID || p.product_id) === pid
-      );
+      const pid  = String(item.ProductID || item.productID || '');
+      const prod = products.find(p => String(p.ProductID) === pid);
       return {
-        ProductName:
-          item.ProductName  || item.productName  || item.product_name ||
-          item.name         || item.Name         ||
-          prod?.ProductName || prod?.productName ||
-          pid || '-',
-        Quantity: Number(item.Quantity ?? item.quantity ?? item.qty ?? 0),
-        Rate:     Number(item.Rate     || item.rate     || item.price    || item.Price    || 0),
-        Amount:   Number(item.Amount   || item.amount   || item.total    || item.Total    || 0),
+        ProductName: item.ProductName || item.productName || prod?.ProductName || pid || '-',
+        Quantity: Number(item.Quantity ?? item.quantity ?? 0),
+        Rate:     Number(item.Rate || item.rate || 0),
+        Amount:   Number(item.Amount || item.amount || 0),
       };
     });
-
     generateInvoicePDF({
       type:       'purchase',
-      invoiceNo:  purchase.InvoiceNo      || purchase.invoiceNo      || '-',
+      invoiceNo:  purchase.InvoiceNo   || '-',
       date:       fmt(purchase.PurchaseDate || purchase.purchaseDate),
       partyLabel: 'Supplier',
-      partyName:  purchase.VendorName     || purchase.vendorName     || '-',
-      partyPhone: purchase.VendorPhone    || purchase.vendorPhone    || '',
-      partyCity:  purchase.VendorCity     || purchase.vendorCity     || '',
+      partyName:  purchase.VendorName  || '-',
+      partyPhone: purchase.VendorPhone || purchase.vendorPhone || '',
+      partyCity:  purchase.VendorCity  || purchase.vendorCity  || '',
       items:      resolvedItems,
-      total:      n(purchase.TotalAmount    || purchase.totalAmount),
-      paid:       n(purchase.PaidAmount     || purchase.paidAmount   || 0),
-      balance:    n(purchase.BalanceAmount  || purchase.balanceAmount|| 0),
-      status:     purchase.PaymentStatus   || purchase.paymentStatus  || 'Pending',
+      total:      n(purchase.TotalAmount   || purchase.totalAmount),
+      paid:       n(purchase.PaidAmount    || purchase.paidAmount   || 0),
+      balance:    n(purchase.BalanceAmount || purchase.balanceAmount || 0),
+      status:     purchase.PaymentStatus  || purchase.paymentStatus  || 'Pending',
     });
   };
 
@@ -162,7 +141,7 @@ export function Purchases() {
       setFormData({
         VendorID: '', PurchaseDate: new Date().toISOString().split('T')[0],
         Description: '', PaidAmount: 0, PaymentMethod: 'Cash', ChequeNo: '', BankDetails: '',
-        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10 }]
+        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10, WarehouseID: '' }]
       });
       load();
     } catch (err) {
@@ -295,11 +274,11 @@ export function Purchases() {
               </div>
 
               <label style={{...S.label, marginTop:10}}>Items</label>
-              <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:280, overflowY:'auto'}}>
+              <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:320, overflowY:'auto'}}>
                 {formData.Items.map((item, idx) => (
-                  <div key={idx} style={{marginBottom:8}}>
-                    <div style={{display:'flex', gap:5, alignItems:'center'}}>
-                      <select style={{...S.input, flex:2}} value={item.ProductID}
+                  <div key={idx} style={{marginBottom:10, paddingBottom:10, borderBottom:'1px solid #e5e7eb'}}>
+                    <div style={{display:'flex', gap:5, alignItems:'center', marginBottom:5}}>
+                      <select style={{...S.input, flex:3}} value={item.ProductID}
                         onChange={e=>updateItem(idx, 'ProductID', e.target.value)}>
                         <option value="">Select Product</option>
                         {products.map(p => (
@@ -316,9 +295,23 @@ export function Purchases() {
                       <button type="button" onClick={()=>removeItemRow(idx)}
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
                     </div>
+
+                    {/* Warehouse Dropdown */}
+                    <div style={{display:'flex', alignItems:'center', gap:8}}>
+                      <span style={{fontSize:12, color:'#6b7280', whiteSpace:'nowrap'}}>📦 Warehouse:</span>
+                      <select style={{...S.input, flex:1, fontSize:12}}
+                        value={item.WarehouseID}
+                        onChange={e=>updateItem(idx, 'WarehouseID', e.target.value)}>
+                        <option value="">Select Warehouse</option>
+                        {warehouses.map(w => (
+                          <option key={w.WarehouseID} value={w.WarehouseID}>{w.WarehouseName} — {w.City||''}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     {item.ProductID && (
                       <div style={{
-                        fontSize:11, marginTop:3, paddingLeft:4,
+                        fontSize:11, marginTop:4, paddingLeft:4,
                         color: n(item.Stock) <= n(item.MinStock) ? '#dc2626' : '#16a34a',
                         fontWeight: n(item.Stock) <= n(item.MinStock) ? 600 : 400
                       }}>
@@ -419,7 +412,6 @@ export function Purchases() {
                     onChange={e=>setPayForm({...payForm, chequeNo: e.target.value})} />
                 </div>
               )}
-
               {(payForm.method === 'Online' || payForm.method === 'Bank Transfer') && (
                 <div style={{marginTop:8}}>
                   <label style={S.label}>Bank / Reference</label>
@@ -465,7 +457,7 @@ const S = {
   btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500, marginLeft:4 }),
   btnSm:  (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:4, padding:'4px 8px', cursor:'pointer', fontSize:12, fontWeight:500 }),
   overlay: { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1000 },
-  modal:   { background:'#fff', padding:24, borderRadius:8, width:'680px', maxWidth:'95%', maxHeight:'90vh', overflowY:'auto' },
+  modal:   { background:'#fff', padding:24, borderRadius:8, width:'700px', maxWidth:'95%', maxHeight:'90vh', overflowY:'auto' },
   label:   { display:'block', marginBottom:4, fontSize:13, fontWeight:600, color:'#374151' },
   input:   { padding:'8px', borderRadius:4, border:'1px solid #d1d5db', width:'100%', boxSizing:'border-box', fontSize:13 },
 };
