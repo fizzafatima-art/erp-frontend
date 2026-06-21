@@ -22,6 +22,7 @@ export function Sales() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts]   = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
 
   const [formData, setFormData] = useState({
     CustomerID: '',
@@ -31,7 +32,7 @@ export function Sales() {
     PaymentMethod: 'Cash',
     ChequeNo: '',
     BankDetails: '',
-    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
+    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
   });
 
   const [payForm, setPayForm] = useState({
@@ -53,6 +54,9 @@ export function Sales() {
         return t === 'CUSTOMER' || t === 'BOTH';
       });
       setCustomers(cust);
+
+      const wRes = await axios.get(`${API}/warehouse/warehouses`);
+      setWarehouses(Array.isArray(wRes.data?.data) ? wRes.data.data : []);
 
       const pRes = await axios.get(`${API}/products`);
       const allProds = Array.isArray(pRes.data?.data) ? pRes.data.data : [];
@@ -94,7 +98,7 @@ export function Sales() {
   const addItemRow = () => {
     setFormData({
       ...formData,
-      Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
+      Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
     });
   };
 
@@ -119,45 +123,64 @@ export function Sales() {
 
   const handleDownloadInvoice = async (sale) => {
     let items = [];
+
+    // ── 1. Detail API se items fetch karo ──────────────────
     try {
       const res  = await axios.get(`${API}/sales/${sale.SaleID}`);
       const data = res.data?.data || res.data;
-      items = data?.Items || data?.items || data?.SaleItems || data?.saleItems || data?.sale_items || data?.products || [];
+      items =
+        data?.Items      ||
+        data?.items      ||
+        data?.SaleItems  ||
+        data?.saleItems  ||
+        data?.sale_items ||
+        data?.products   ||
+        [];
     } catch (e) {
-      console.warn('Detail API failed:', e.message);
-    }
-    if (!items || items.length === 0) {
-      items = sale.Items || sale.items || sale.SaleItems || sale.saleItems || [];
+      console.warn('Detail API failed, falling back to list data:', e.message);
     }
 
+    // ── 2. Fallback: list row mein jo tha woh lo ───────────
+    if (!items || items.length === 0) {
+      items =
+        sale.Items      ||
+        sale.items      ||
+        sale.SaleItems  ||
+        sale.saleItems  ||
+        [];
+    }
+
+    // ── 3. ProductName products[] se resolve karo ──────────
     const resolvedItems = (items || []).map(item => {
       const pid  = String(item.ProductID || item.productID || item.product_id || '');
-      const prod = products.find(p => String(p.ProductID || p.productID || p.product_id) === pid);
+      const prod = products.find(p =>
+        String(p.ProductID || p.productID || p.product_id) === pid
+      );
       return {
-        ProductName: item.ProductName || item.productName || item.product_name || item.name || item.Name || prod?.ProductName || prod?.productName || pid || '-',
+        ProductName:
+          item.ProductName  || item.productName  || item.product_name ||
+          item.name         || item.Name         ||
+          prod?.ProductName || prod?.productName ||
+          pid || '-',
         Quantity: Number(item.Quantity ?? item.quantity ?? item.qty ?? 0),
-        Rate:     Number(item.Rate     || item.rate     || item.price || item.Price || 0),
-        Amount:   Number(item.Amount   || item.amount   || item.total || item.Total || 0),
+        Rate:     Number(item.Rate     || item.rate     || item.price    || item.Price    || 0),
+        Amount:   Number(item.Amount   || item.amount   || item.total    || item.Total    || 0),
       };
     });
 
-    const calcTotal = resolvedItems.reduce((sum, i) => sum + i.Amount, 0);
-    const finalTotal = calcTotal > 0 ? calcTotal : n(sale.TotalAmount || sale.totalAmount || 0);
-    const finalPaid = n(sale.PaidAmount || sale.ReceivedAmount || sale.paidAmount || 0);
-
     generateInvoicePDF({
       type:       'sale',
-      invoiceNo:  sale.InvoiceNo || sale.invoiceNo || '-',
+      invoiceNo:  sale.InvoiceNo   || sale.invoiceNo   || '-',
       date:       fmt(sale.SaleDate || sale.saleDate),
       partyLabel: 'Customer',
-      partyName:  sale.CustomerName || sale.customerName || '-',
+      partyName:  sale.CustomerName  || sale.customerName  || '-',
       partyPhone: sale.CustomerPhone || sale.customerPhone || '',
-      partyCity:  sale.CustomerCity || sale.customerCity || '',
+      partyCity:  sale.CustomerCity  || sale.customerCity  || '',
       items:      resolvedItems,
-      total:      finalTotal,
-      paid:       finalPaid,
-      balance:    finalTotal - finalPaid,
-      status:     sale.PaymentStatus || sale.paymentStatus || 'Pending',
+      total:      n(sale.TotalAmount    || sale.totalAmount),
+      paid:       n(sale.PaidAmount     || sale.ReceivedAmount || sale.paidAmount || 0),
+      balance:    n(sale.BalanceAmount  || sale.balanceAmount  || 0),
+      status:     sale.PaymentStatus   || sale.paymentStatus   || 'Pending',
     });
   };
 
@@ -165,10 +188,6 @@ export function Sales() {
     e.preventDefault();
     try {
       const total = getTotal();
-      if (total <= 0) {
-        alert('Error: Total amount is Rs.0 — please add items with valid quantity and rate.');
-        return;
-      }
       const paid  = Number(formData.ReceivedAmount) || 0;
       const payload = {
         CustomerID:     formData.CustomerID,
@@ -185,7 +204,7 @@ export function Sales() {
         CustomerID: '', SaleDate: new Date().toISOString().split('T')[0],
         Description: '', ReceivedAmount: 0, PaymentMethod: 'Cash',
         ChequeNo: '', BankDetails: '',
-        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0 }]
+        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
       });
       load();
     } catch (err) {
@@ -263,8 +282,8 @@ export function Sales() {
                     <td style={S.td}>{s(r.InvoiceNo)||'-'}</td>
                     <td style={{...S.td, fontWeight:600}}>Rs.{n(r.TotalAmount).toFixed(2)}</td>
                     <td style={S.td}>Rs.{n(r.PaidAmount).toFixed(2)}</td>
-                    <td style={{...S.td, color: Math.max(0, n(r.BalanceAmount))>0?'#dc2626':'#16a34a', fontWeight:600}}>
-                      Rs.{Math.max(0, n(r.BalanceAmount)).toFixed(2)}
+                    <td style={{...S.td, color: n(r.BalanceAmount)>0?'#dc2626':'#16a34a', fontWeight:600}}>
+                      Rs.{n(r.BalanceAmount).toFixed(2)}
                     </td>
                     <td style={S.td}>
                       <span style={{
@@ -340,6 +359,17 @@ export function Sales() {
                       </div>
                       <button type="button" onClick={()=>removeItemRow(idx)}
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
+                    </div>
+                    <div style={{display:'flex', alignItems:'center', gap:8, marginTop:5}}>
+                      <span style={{fontSize:12, color:'#6b7280', whiteSpace:'nowrap'}}>🏭 Warehouse:</span>
+                      <select style={{...S.input, flex:1, fontSize:12}}
+                        value={item.WarehouseID}
+                        onChange={e=>updateItem(idx, 'WarehouseID', e.target.value)}>
+                        <option value="">Select Warehouse</option>
+                        {warehouses.map(w => (
+                          <option key={w.WarehouseID} value={w.WarehouseID}>{w.WarehouseName} — {w.City||''}</option>
+                        ))}
+                      </select>
                     </div>
                     {item.ProductID && (
                       <div style={{fontSize:11, color: n(item.Stock) < n(item.Quantity) ? '#dc2626' : '#16a34a', marginTop:2, paddingLeft:4}}>
