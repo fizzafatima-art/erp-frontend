@@ -45,7 +45,7 @@ export function Purchases() {
     try {
       const vRes = await axios.get(`${API}/vendors`);
       const allVendors = Array.isArray(vRes.data?.data) ? vRes.data.data : [];
-      setVendors(allVendors.filter(v => v.VendorType === 'Supplier' || v.VendorType === 'Vendor' || v.VendorType === 'Both'));
+      setVendors(allVendors.filter(v => { const t = (v.VendorType || "").toUpperCase(); return t === "SUPPLIER" || t === "VENDOR" || t === "BOTH"; }));
 
       const wRes = await axios.get(`${API}/warehouse/warehouses`);
       setWarehouses(Array.isArray(wRes.data?.data) ? wRes.data.data : []);
