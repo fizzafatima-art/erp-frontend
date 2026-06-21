@@ -19,19 +19,18 @@ export function WarehouseReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Filters
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  // Transfer detail modal
   const [showDetail, setShowDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
   useEffect(() => { loadWarehouses(); }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (tab === 'summary') loadSummary();
     else if (tab === 'stock') loadStock();
@@ -86,15 +85,14 @@ export function WarehouseReport() {
     } catch (e) { alert('Failed to load detail'); }
   };
 
-  const totalValue = summary.reduce((s, r) => s + n(r.TotalValue), 0);
-  const totalProducts = summary.reduce((s, r) => s + n(r.ProductCount), 0);
-  const totalQty = summary.reduce((s, r) => s + n(r.TotalQty), 0);
+  const totalValue = summary.reduce((sum, r) => sum + n(r.TotalValue), 0);
+  const totalProducts = summary.reduce((sum, r) => sum + n(r.ProductCount), 0);
+  const totalQty = summary.reduce((sum, r) => sum + n(r.TotalQty), 0);
 
   return (
     <div style={{ padding: 24, fontFamily: 'Segoe UI, sans-serif' }}>
       <h2 style={{ margin: '0 0 20px 0' }}>📦 Warehouse Reports</h2>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #e5e7eb' }}>
         {[
           { key: 'summary', label: '📊 Summary' },
@@ -116,7 +114,6 @@ export function WarehouseReport() {
 
       {error && <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', padding: 10, borderRadius: 6, marginBottom: 14 }}>{error}</div>}
 
-      {/* ===== SUMMARY TAB ===== */}
       {tab === 'summary' && (
         <>
           <div style={{ display: 'flex', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -162,7 +159,6 @@ export function WarehouseReport() {
         </>
       )}
 
-      {/* ===== STOCK TAB ===== */}
       {tab === 'stock' && (
         <>
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -207,7 +203,6 @@ export function WarehouseReport() {
         </>
       )}
 
-      {/* ===== TRANSFERS TAB ===== */}
       {tab === 'transfers' && (
         <>
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -219,8 +214,8 @@ export function WarehouseReport() {
               <option value="">To: Any</option>
               {warehouses.map(w => <option key={w.WarehouseID} value={w.WarehouseID}>{w.WarehouseName}</option>)}
             </select>
-            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={ST.select} placeholder="From Date" />
-            <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={ST.select} placeholder="To Date" />
+            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={ST.select} />
+            <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={ST.select} />
             <span style={{ fontSize: 12, color: '#6b7280' }}>{transfers.length} records</span>
           </div>
 
@@ -265,7 +260,6 @@ export function WarehouseReport() {
         </>
       )}
 
-      {/* ===== DETAIL MODAL ===== */}
       {showDetail && detailData && (
         <div style={ST.overlay} onClick={() => setShowDetail(false)}>
           <div style={ST.modal} onClick={e => e.stopPropagation()}>
