@@ -23,6 +23,7 @@ export function Purchases() {
   const [vendors, setVendors]     = useState([]);
   const [products, setProducts]   = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
 
   const [formData, setFormData] = useState({
     VendorID: '',
@@ -31,15 +32,16 @@ export function Purchases() {
     PaidAmount: 0,
     PaymentMethod: 'Cash',
     ChequeNo: '',
+    BankAccountID: '',
     BankDetails: '',
     Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10, WarehouseID: '' }]
   });
 
   const [payForm, setPayForm] = useState({
-    amount: '', method: 'Cash', chequeNo: '', bankDetails: '', notes: ''
+    amount: '', method: 'Cash', chequeNo: '', bankAccountID: '', bankDetails: '', notes: ''
   });
 
-  useEffect(() => { load(); loadDropdowns(); }, []);
+  useEffect(() => { load(); loadDropdowns(); }, []); // eslint-disable-line
 
   const loadDropdowns = async () => {
     try {
@@ -52,6 +54,11 @@ export function Purchases() {
 
       const pRes = await axios.get(`${API}/products`);
       setProducts(Array.isArray(pRes.data?.data) ? pRes.data.data : []);
+
+      try {
+        const bRes = await axios.get(`${API}/bank-reconciliation/accounts`);
+        setBankAccounts(Array.isArray(bRes.data?.data) ? bRes.data.data : []);
+      } catch (e) { console.warn('Bank accounts load failed:', e.message); }
     } catch (e) { console.error("Dropdown Error", e); }
   };
 
@@ -91,9 +98,7 @@ export function Purchases() {
       const res  = await axios.get(`${API}/purchases/${purchase.PurchaseID}`);
       const data = res.data?.data || res.data;
       items = data?.Items || data?.items || data?.PurchaseItems || [];
-    } catch (e) {
-      console.warn('Detail API failed:', e.message);
-    }
+    } catch (e) { console.warn('Detail API failed:', e.message); }
     if (!items || items.length === 0) {
       items = purchase.Items || purchase.items || purchase.PurchaseItems || [];
     }
@@ -129,18 +134,23 @@ export function Purchases() {
       const total = getTotal();
       const paid  = Number(formData.PaidAmount) || 0;
       await axios.post(`${API}/purchases`, {
-        VendorID:     formData.VendorID,
-        PurchaseDate: formData.PurchaseDate,
-        Description:  formData.Description,
-        TotalAmount:  total,
-        PaidAmount:   paid,
-        Items:        formData.Items,
+        VendorID:      formData.VendorID,
+        PurchaseDate:  formData.PurchaseDate,
+        Description:   formData.Description,
+        TotalAmount:   total,
+        PaidAmount:    paid,
+        PaymentMethod: formData.PaymentMethod,
+        ChequeNo:      formData.ChequeNo,
+        BankAccountID: formData.BankAccountID || null,
+        BankDetails:   formData.BankDetails,
+        Items:         formData.Items,
       });
       alert('Purchase Created Successfully!');
       setShowModal(false);
       setFormData({
         VendorID: '', PurchaseDate: new Date().toISOString().split('T')[0],
-        Description: '', PaidAmount: 0, PaymentMethod: 'Cash', ChequeNo: '', BankDetails: '',
+        Description: '', PaidAmount: 0, PaymentMethod: 'Cash',
+        ChequeNo: '', BankAccountID: '', BankDetails: '',
         Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, MinStock: 10, WarehouseID: '' }]
       });
       load();
@@ -151,7 +161,7 @@ export function Purchases() {
 
   const openPayModal = (purchase) => {
     setSelectedPurchase(purchase);
-    setPayForm({ amount: n(purchase.BalanceAmount).toFixed(2), method: 'Cash', chequeNo: '', bankDetails: '', notes: '' });
+    setPayForm({ amount: n(purchase.BalanceAmount).toFixed(2), method: 'Cash', chequeNo: '', bankAccountID: '', bankDetails: '', notes: '' });
     setShowPayModal(true);
   };
 
@@ -159,11 +169,12 @@ export function Purchases() {
     e.preventDefault();
     try {
       await axios.put(`${API}/purchases/${selectedPurchase.PurchaseID}/payment`, {
-        amount:      Number(payForm.amount),
-        method:      payForm.method,
-        chequeNo:    payForm.chequeNo,
-        bankDetails: payForm.bankDetails,
-        notes:       payForm.notes,
+        amount:        Number(payForm.amount),
+        method:        payForm.method,
+        chequeNo:      payForm.chequeNo,
+        bankAccountID: payForm.bankAccountID || null,
+        bankDetails:   payForm.bankDetails,
+        notes:         payForm.notes,
       });
       alert('Payment recorded!');
       setShowPayModal(false);
@@ -179,6 +190,38 @@ export function Purchases() {
   });
 
   const total = filtered.reduce((sum, r) => sum + n(r.TotalAmount ?? r.totalAmount), 0);
+
+  // Reusable bank fields component
+  const BankFields = ({ method, bankAccountID, setBankAccountID, chequeNo, setChequeNo, bankDetails, setBankDetails }) => (
+    <>
+      {(method === 'Online' || method === 'Bank Transfer') && (
+        <div style={{ marginTop: 8 }}>
+          <label style={S.label}>🏦 Bank Account <span style={{color:'#dc2626'}}>*</span></label>
+          <select required style={S.input} value={bankAccountID} onChange={e => setBankAccountID(e.target.value)}>
+            <option value="">-- Select Bank Account --</option>
+            {bankAccounts.length === 0 && <option disabled>No accounts — add from Bank Reconciliation</option>}
+            {bankAccounts.map(b => (
+              <option key={b.AccountID} value={b.AccountID}>
+                {b.BankName} — {b.AccountNo} ({b.AccountTitle})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {method === 'Cheque' && (
+        <div style={{ marginTop: 8 }}>
+          <label style={S.label}>Cheque No</label>
+          <input style={S.input} placeholder="Cheque Number" value={chequeNo} onChange={e => setChequeNo(e.target.value)} />
+        </div>
+      )}
+      {(method === 'Online' || method === 'Bank Transfer') && (
+        <div style={{ marginTop: 8 }}>
+          <label style={S.label}>Reference / Transaction ID</label>
+          <input style={S.input} placeholder="e.g. TXN123456" value={bankDetails} onChange={e => setBankDetails(e.target.value)} />
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div style={{ padding:24, fontFamily:'Segoe UI,sans-serif' }}>
@@ -286,7 +329,7 @@ export function Purchases() {
                         ))}
                       </select>
                       <input type="number" placeholder="Qty" style={{...S.input, flex:1}}
-                        value={item.Quantity} onChange={e=>updateItem(idx, 'Quantity', e.target.value)} />
+                        value={item.Quantity} onChange={e=>updateItem(idx,'Quantity', e.target.value)} />
                       <input type="number" placeholder="Rate" style={{...S.input, flex:1}}
                         value={item.Rate} onChange={e=>updateItem(idx, 'Rate', e.target.value)} />
                       <div style={{...S.input, flex:1, background:'#fff', fontWeight:600}}>
@@ -295,8 +338,6 @@ export function Purchases() {
                       <button type="button" onClick={()=>removeItemRow(idx)}
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
                     </div>
-
-                    {/* Warehouse Dropdown */}
                     <div style={{display:'flex', alignItems:'center', gap:8}}>
                       <span style={{fontSize:12, color:'#6b7280', whiteSpace:'nowrap'}}>📦 Warehouse:</span>
                       <select style={{...S.input, flex:1, fontSize:12}}
@@ -308,20 +349,13 @@ export function Purchases() {
                         ))}
                       </select>
                     </div>
-
                     {item.ProductID && (
                       <div style={{
                         fontSize:11, marginTop:4, paddingLeft:4,
                         color: n(item.Stock) <= n(item.MinStock) ? '#dc2626' : '#16a34a',
                         fontWeight: n(item.Stock) <= n(item.MinStock) ? 600 : 400
                       }}>
-                        📦 Current Stock: {n(item.Stock)}
-                        {n(item.Stock) === 0
-                          ? ' ❌ Out of Stock!'
-                          : n(item.Stock) <= n(item.MinStock)
-                            ? ` ⚠️ Low Stock! (Min: ${n(item.MinStock)})`
-                            : ' ✓ In Stock'
-                        }
+                        📦 Current Stock: {n(item.Stock)} {n(item.Stock) === 0 ? '⚠ Low Stock!' : '✓ In Stock'}
                       </div>
                     )}
                   </div>
@@ -345,7 +379,7 @@ export function Purchases() {
                   <div style={{flex:1}}>
                     <label style={S.label}>Payment Method</label>
                     <select style={S.input} value={formData.PaymentMethod}
-                      onChange={e=>setFormData({...formData, PaymentMethod: e.target.value})}>
+                      onChange={e=>setFormData({...formData, PaymentMethod: e.target.value, BankAccountID: '', BankDetails: '', ChequeNo: ''})}>
                       <option>Cash</option>
                       <option>Cheque</option>
                       <option>Online</option>
@@ -353,20 +387,15 @@ export function Purchases() {
                     </select>
                   </div>
                 </div>
-                {formData.PaymentMethod === 'Cheque' && (
-                  <div style={{marginTop:8}}>
-                    <label style={S.label}>Cheque No</label>
-                    <input style={S.input} value={formData.ChequeNo}
-                      onChange={e=>setFormData({...formData, ChequeNo: e.target.value})} />
-                  </div>
-                )}
-                {(formData.PaymentMethod === 'Online' || formData.PaymentMethod === 'Bank Transfer') && (
-                  <div style={{marginTop:8}}>
-                    <label style={S.label}>Bank / Reference</label>
-                    <input style={S.input} value={formData.BankDetails}
-                      onChange={e=>setFormData({...formData, BankDetails: e.target.value})} />
-                  </div>
-                )}
+                <BankFields
+                  method={formData.PaymentMethod}
+                  bankAccountID={formData.BankAccountID}
+                  setBankAccountID={v => setFormData({...formData, BankAccountID: v})}
+                  chequeNo={formData.ChequeNo}
+                  setChequeNo={v => setFormData({...formData, ChequeNo: v})}
+                  bankDetails={formData.BankDetails}
+                  setBankDetails={v => setFormData({...formData, BankDetails: v})}
+                />
               </div>
 
               <div style={{marginTop:12, textAlign:'right', fontSize:16, fontWeight:700}}>
@@ -386,10 +415,10 @@ export function Purchases() {
       {/* PAYMENT MODAL */}
       {showPayModal && selectedPurchase && (
         <div style={S.overlay}>
-          <div style={{...S.modal, width:400}}>
+          <div style={{...S.modal, width:440}}>
             <h3 style={{marginTop:0}}>Record Payment</h3>
             <p style={{color:'#6b7280', fontSize:13}}>
-              Invoice: {selectedPurchase.InvoiceNo} | Balance: Rs.{n(selectedPurchase.BalanceAmount).toFixed(2)}
+              Invoice: <strong>{selectedPurchase.InvoiceNo}</strong> | Balance: <strong>Rs.{n(selectedPurchase.BalanceAmount).toFixed(2)}</strong>
             </p>
             <form onSubmit={handlePaySubmit}>
               <label style={S.label}>Amount *</label>
@@ -398,25 +427,26 @@ export function Purchases() {
 
               <label style={{...S.label, marginTop:10}}>Payment Method *</label>
               <select required style={S.input} value={payForm.method}
-                onChange={e=>setPayForm({...payForm, method: e.target.value})}>
+                onChange={e=>setPayForm({...payForm, method: e.target.value, bankAccountID: '', bankDetails: '', chequeNo: ''})}>
                 <option>Cash</option>
                 <option>Cheque</option>
                 <option>Online</option>
                 <option>Bank Transfer</option>
               </select>
 
-              {payForm.method === 'Cheque' && (
-                <div style={{marginTop:8}}>
-                  <label style={S.label}>Cheque No</label>
-                  <input style={S.input} value={payForm.chequeNo}
-                    onChange={e=>setPayForm({...payForm, chequeNo: e.target.value})} />
-                </div>
-              )}
-              {(payForm.method === 'Online' || payForm.method === 'Bank Transfer') && (
-                <div style={{marginTop:8}}>
-                  <label style={S.label}>Bank / Reference</label>
-                  <input style={S.input} value={payForm.bankDetails}
-                    onChange={e=>setPayForm({...payForm, bankDetails: e.target.value})} />
+              <BankFields
+                method={payForm.method}
+                bankAccountID={payForm.bankAccountID}
+                setBankAccountID={v => setPayForm({...payForm, bankAccountID: v})}
+                chequeNo={payForm.chequeNo}
+                setChequeNo={v => setPayForm({...payForm, chequeNo: v})}
+                bankDetails={payForm.bankDetails}
+                setBankDetails={v => setPayForm({...payForm, bankDetails: v})}
+              />
+
+              {(payForm.method === 'Online' || payForm.method === 'Bank Transfer') && !payForm.bankAccountID && (
+                <div style={{marginTop:8, padding:'8px 12px', background:'#fef3c7', border:'1px solid #fcd34d', borderRadius:4, fontSize:12, color:'#92400e'}}>
+                  ⚠️ Bank account select karna zaruri hai — warna Bank Reconciliation mein nahi ayega.
                 </div>
               )}
 
