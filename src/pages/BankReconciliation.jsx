@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -22,20 +21,17 @@ export default function BankReconciliation() {
   const [error, setError]     = useState('');
   const [tab, setTab]         = useState('Reconciliation');
 
-  // Add Account Modal
   const [showAccModal, setShowAccModal] = useState(false);
   const [accForm, setAccForm] = useState({ BankName:'', AccountTitle:'', AccountNo:'', BranchCode:'', OpeningBalance:0 });
 
-  // Add Statement Modal
   const [showStmtModal, setShowStmtModal] = useState(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const [stmtForm, setStmtForm] = useState({ TransactionDate:'', Description:'', Debit:0, Credit:0, Balance:0, ReferenceNo:'' });
 
-  useEffect(() => { loadAccounts(); }, []);
+  useEffect(() => { loadAccounts(); }, []); // eslint-disable-line
 
   const loadAccounts = async () => {
     try {
-      const res = await axios.get(`${API}/bank/accounts`);
+      const res = await axios.get(`${API}/bank-reconciliation/accounts`);
       const list = res.data?.data || [];
       setAccounts(list);
       if (list.length > 0 && !selectedAcc) setSelectedAcc(list[0].AccountID);
@@ -49,21 +45,19 @@ export default function BankReconciliation() {
       const params = { accountId: selectedAcc };
       if (from) params.dateFrom = from;
       if (to)   params.dateTo   = to;
-      const res = await axios.get(`${API}/bank/reconciliation`, { params });
+      const res = await axios.get(`${API}/bank-reconciliation/reconciliation`, { params });
       setData(res.data?.data || null);
     } catch (e) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       setError('Failed to load reconciliation data.');
-
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { if (selectedAcc) loadReconciliation(); }, [selectedAcc]);
+  useEffect(() => { if (selectedAcc) loadReconciliation(); }, [selectedAcc]); // eslint-disable-line
 
   const handleAddAccount = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/bank/accounts`, accForm);
+      await axios.post(`${API}/bank-reconciliation/accounts`, accForm);
       alert('Bank account added!');
       setShowAccModal(false);
       setAccForm({ BankName:'', AccountTitle:'', AccountNo:'', BranchCode:'', OpeningBalance:0 });
@@ -76,7 +70,7 @@ export default function BankReconciliation() {
   const handleAddStatement = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/bank/statements`, { ...stmtForm, AccountID: selectedAcc });
+      await axios.post(`${API}/bank-reconciliation/statements`, { ...stmtForm, AccountID: selectedAcc });
       alert('Statement entry added!');
       setShowStmtModal(false);
       setStmtForm({ TransactionDate:'', Description:'', Debit:0, Credit:0, Balance:0, ReferenceNo:'' });
@@ -88,7 +82,7 @@ export default function BankReconciliation() {
 
   const handleMatch = async (statementId, paymentId) => {
     try {
-      await axios.post(`${API}/bank/match`, { StatementID: statementId, PaymentID: paymentId });
+      await axios.post(`${API}/bank-reconciliation/match`, { StatementID: statementId, PaymentID: paymentId });
       loadReconciliation();
     } catch (err) {
       alert('Error matching: ' + (err.response?.data?.message || err.message));
@@ -97,7 +91,7 @@ export default function BankReconciliation() {
 
   const handleUnmatch = async (statementId, paymentId) => {
     try {
-      await axios.post(`${API}/bank/unmatch`, { StatementID: statementId, PaymentID: paymentId });
+      await axios.post(`${API}/bank-reconciliation/unmatch`, { StatementID: statementId, PaymentID: paymentId });
       loadReconciliation();
     } catch (err) {
       alert('Error unmatching: ' + (err.response?.data?.message || err.message));
@@ -107,12 +101,15 @@ export default function BankReconciliation() {
   const handleDeleteStatement = async (id) => {
     if (!window.confirm('Delete this statement entry?')) return;
     try {
-      await axios.delete(`${API}/bank/statements/${id}`);
+      await axios.delete(`${API}/bank-reconciliation/statements/${id}`);
       loadReconciliation();
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
     }
   };
+
+  // suppress unused warning
+  void handleMatch; void handleUnmatch;
 
   const summary = data?.summary || {};
 
@@ -126,7 +123,6 @@ export default function BankReconciliation() {
         <button onClick={()=>setShowAccModal(true)} style={S.btn('#2563eb')}>+ Add Bank Account</button>
       </div>
 
-      {/* Account Selector + Filters */}
       <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap', alignItems:'flex-end' }}>
         <div>
           <label style={S.lbl}>Bank Account</label>
@@ -157,7 +153,6 @@ export default function BankReconciliation() {
         <div style={S.center}>Loading...</div>
       ) : data ? (
         <>
-          {/* Summary KPIs */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:14, marginBottom:24 }}>
             <KPI label="Bank Statements" value={summary.totalStatements || 0} color="#2563eb" bg="#eff6ff" bdr="#93c5fd" />
             <KPI label="System Payments" value={summary.totalPayments || 0} color="#7c3aed" bg="#faf5ff" bdr="#c4b5fd" />
@@ -176,7 +171,6 @@ export default function BankReconciliation() {
             </div>
           </div>
 
-          {/* Tabs */}
           <div style={{ display:'flex', gap:4, borderBottom:'2px solid #e5e7eb', marginBottom:16 }}>
             {['Reconciliation','Bank Statements','System Payments'].map(t => (
               <button key={t} onClick={()=>setTab(t)} style={{
