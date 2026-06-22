@@ -16,22 +16,25 @@ const TABS = ['Summary','Sales','Purchases','Expenses','Outstanding','Analytics'
 
 export default function Reports() {
   const [tab, setTab]         = useState('Summary');
+  const [outSubTab, setOutSubTab] = useState('customers');
   const [data, setData]       = useState({ 
     sales:[], purchases:[], expenses:[], 
-    outstanding:[], topProducts:[], topCustomers:[], cityReport:[], vendorProfit:[]
+    outstanding:[], outstandingSuppliers:[],
+    topProducts:[], topCustomers:[], cityReport:[], vendorProfit:[]
   });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [from, setFrom]       = useState('');
   const [to, setTo]           = useState('');
 
-  const sendWhatsApp = (name, amount, city, phone) => {
+  const sendWhatsApp = (name, amount, city, phone, type) => {
     if (!phone) { alert('Phone number not available'); return; }
-    const message = `Hello ${name} (${city || 'N/A'}),%0A%0A🔔 *Outstanding Payment Reminder*%0A----------------------------%0AYour outstanding balance: *Rs. ${n(amount).toLocaleString('en-IN')}*%0A%0APlease clear dues at your earliest convenience.%0A%0AThank you!`;
+    const label = type === 'supplier' ? 'Supplier Payment Reminder' : 'Outstanding Payment Reminder';
+    const msg = `Hello ${name}${city ? ' (' + city + ')' : ''},%0A%0A🔔 *${label}*%0A----------------------------%0AYour outstanding balance: *Rs. ${n(amount).toLocaleString('en-IN')}*%0A%0APlease clear dues at your earliest convenience.%0A%0AThank you!`;
     let cleanPhone = phone.replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
     else if (!cleanPhone.startsWith('92')) cleanPhone = '92' + cleanPhone;
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
   };
 
   const fetchAll = useCallback(async () => {
@@ -49,11 +52,12 @@ export default function Reports() {
         return [];
       };
 
-      const [sR, pR, eR, outR, tpR, tcR, cityR, vpR] = await Promise.allSettled([
+      const [sR, pR, eR, outR, outSupR, tpR, tcR, cityR, vpR] = await Promise.allSettled([
         axios.get(`${API}/sales`, { params }),
         axios.get(`${API}/purchases`, { params }),
         axios.get(`${API}/expenses`, { params }),
         axios.get(`${API}/reports/outstanding-customers`, { params }),
+        axios.get(`${API}/reports/outstanding-suppliers`, { params }),
         axios.get(`${API}/reports/top-products`, { params }),
         axios.get(`${API}/reports/top-customers`, { params }),
         axios.get(`${API}/reports/city-report`, { params }),
@@ -61,14 +65,15 @@ export default function Reports() {
       ]);
 
       setData({
-        sales:        extract(sR),
-        purchases:    extract(pR),
-        expenses:     extract(eR),
-        outstanding:  extract(outR),
-        topProducts:  extract(tpR),
-        topCustomers: extract(tcR),
-        cityReport:   extract(cityR),
-        vendorProfit: extract(vpR),
+        sales:                extract(sR),
+        purchases:            extract(pR),
+        expenses:             extract(eR),
+        outstanding:          extract(outR),
+        outstandingSuppliers: extract(outSupR),
+        topProducts:          extract(tpR),
+        topCustomers:         extract(tcR),
+        cityReport:           extract(cityR),
+        vendorProfit:         extract(vpR),
       });
     } catch (e) { setError('Failed to load report data.'); }
     finally  { setLoading(false); }
@@ -83,10 +88,13 @@ export default function Reports() {
   };
   totals.net = totals.sales - totals.purchases - totals.expenses;
 
+  const totalOutCust = data.outstanding.reduce((s,r) => s + n(r.TotalOutstanding), 0);
+  const totalOutSupp = data.outstandingSuppliers.reduce((s,r) => s + n(r.TotalOutstanding), 0);
+
   return (
     <div style={{ padding:24, fontFamily:'Segoe UI,sans-serif', maxWidth:1200, margin:'0 auto' }}>
       <h2 style={{ margin:'0 0 4px', fontSize:24, fontWeight:700 }}>📈 Reports</h2>
-      <p style={{ margin:'0 0 20px', color:'#6b7280', fontSize:14 }}>Financial overview, analytics & customer follow-ups</p>
+      <p style={{ margin:'0 0 20px', color:'#6b7280', fontSize:14 }}>Financial overview, analytics & follow-ups</p>
 
       <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap', alignItems:'flex-end' }}>
         <div>
@@ -167,24 +175,91 @@ export default function Reports() {
 
           {tab==='Outstanding' && (
             <div>
-              <h3 style={{marginBottom:15}}>📢 Outstanding Customers (WhatsApp Ready)</h3>
-              <TxTable
-                rows={data.outstanding}
-                empty="No outstanding records found."
-                cols={[
-                  { label:'Customer', fn:r=>s(r.VendorName)||'-' },
-                  { label:'City',     fn:r=>s(r.City)||'-' },
-                  { label:'Phone',    fn:r=>s(r.Phone)||'-' },
-                  { label:'Balance',  fn:r=>cur(r.TotalOutstanding), color:'#dc2626' },
-                  { label:'Action',   fn:r=>(
-                    <button
-                      onClick={() => sendWhatsApp(r.VendorName, r.TotalOutstanding, r.City, r.Phone)}
-                      style={{background:'#25D366', color:'#fff', border:'none', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontSize:12, fontWeight:500}}>
-                      📱 WhatsApp
-                    </button>
-                  )}
-                ]}
-              />
+              {/* Sub Tabs */}
+              <div style={{ display:'flex', gap:8, marginBottom:16, alignItems:'center' }}>
+                <button onClick={() => setOutSubTab('customers')}
+                  style={{
+                    padding:'7px 20px', borderRadius:6, border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
+                    background: outSubTab==='customers' ? '#2563eb' : '#f3f4f6',
+                    color: outSubTab==='customers' ? '#fff' : '#374151'
+                  }}>
+                  👤 Customers ({data.outstanding.length}) — {cur(totalOutCust)}
+                </button>
+                <button onClick={() => setOutSubTab('suppliers')}
+                  style={{
+                    padding:'7px 20px', borderRadius:6, border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
+                    background: outSubTab==='suppliers' ? '#f59e0b' : '#f3f4f6',
+                    color: outSubTab==='suppliers' ? '#fff' : '#374151'
+                  }}>
+                  🏭 Suppliers ({data.outstandingSuppliers.length}) — {cur(totalOutSupp)}
+                </button>
+              </div>
+
+              {outSubTab === 'customers' && (
+                <div>
+                  <div style={{ background:'#eff6ff', border:'1px solid #93c5fd', borderRadius:8, padding:'10px 16px', marginBottom:14, fontSize:13, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ color:'#1e40af', fontWeight:600 }}>Total Outstanding from Customers</span>
+                    <span style={{ color:'#dc2626', fontWeight:700, fontSize:16 }}>{cur(totalOutCust)}</span>
+                  </div>
+                  <TxTable
+                    rows={data.outstanding}
+                    empty="No outstanding customers found."
+                    cols={[
+                      { label:'Customer', fn:r=>s(r.VendorName)||'-' },
+                      { label:'City',     fn:r=>s(r.City)||'-' },
+                      { label:'Phone',    fn:r=>(
+                        <span>
+                          {s(r.Phone) || '-'}
+                          {s(r.Phone) && (
+                            <a href={`tel:${r.Phone}`} style={{ marginLeft:6, color:'#2563eb', textDecoration:'none' }}>📞</a>
+                          )}
+                        </span>
+                      )},
+                      { label:'Balance',  fn:r=>cur(r.TotalOutstanding), color:'#dc2626' },
+                      { label:'Action',   fn:r=>(
+                        <button
+                          onClick={() => sendWhatsApp(r.VendorName, r.TotalOutstanding, r.City, r.Phone, 'customer')}
+                          style={{background:'#25D366', color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, fontWeight:600}}>
+                          📱 WhatsApp
+                        </button>
+                      )}
+                    ]}
+                  />
+                </div>
+              )}
+
+              {outSubTab === 'suppliers' && (
+                <div>
+                  <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'10px 16px', marginBottom:14, fontSize:13, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ color:'#92400e', fontWeight:600 }}>Total Payable to Suppliers</span>
+                    <span style={{ color:'#dc2626', fontWeight:700, fontSize:16 }}>{cur(totalOutSupp)}</span>
+                  </div>
+                  <TxTable
+                    rows={data.outstandingSuppliers}
+                    empty="No outstanding suppliers found."
+                    cols={[
+                      { label:'Supplier', fn:r=>s(r.VendorName)||'-' },
+                      { label:'City',     fn:r=>s(r.City)||'-' },
+                      { label:'Phone',    fn:r=>(
+                        <span>
+                          {s(r.Phone) || '-'}
+                          {s(r.Phone) && (
+                            <a href={`tel:${r.Phone}`} style={{ marginLeft:6, color:'#2563eb', textDecoration:'none' }}>📞</a>
+                          )}
+                        </span>
+                      )},
+                      { label:'Balance',  fn:r=>cur(r.TotalOutstanding), color:'#dc2626' },
+                      { label:'Action',   fn:r=>(
+                        <button
+                          onClick={() => sendWhatsApp(r.VendorName, r.TotalOutstanding, r.City, r.Phone, 'supplier')}
+                          style={{background:'#25D366', color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, fontWeight:600}}>
+                          📱 WhatsApp
+                        </button>
+                      )}
+                    ]}
+                  />
+                </div>
+              )}
             </div>
           )}
 

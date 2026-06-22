@@ -15,6 +15,8 @@ const fmt = (v) => {
 export function Purchases() {
   const [rows, setRows]           = useState([]);
   const [loading, setLoading]     = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [paySubmitting, setPaySubmitting] = useState(false);
   const [error, setError]         = useState('');
   const [search, setSearch]       = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -130,6 +132,8 @@ export function Purchases() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // double submit rok do
+    setSubmitting(true);
     try {
       const total = getTotal();
       const paid  = Number(formData.PaidAmount) || 0;
@@ -156,6 +160,8 @@ export function Purchases() {
       load();
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -167,6 +173,8 @@ export function Purchases() {
 
   const handlePaySubmit = async (e) => {
     e.preventDefault();
+    if (paySubmitting) return;
+    setPaySubmitting(true);
     try {
       await axios.put(`${API}/purchases/${selectedPurchase.PurchaseID}/payment`, {
         amount:        Number(payForm.amount),
@@ -181,6 +189,8 @@ export function Purchases() {
       load();
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setPaySubmitting(false);
     }
   };
 
@@ -191,7 +201,6 @@ export function Purchases() {
 
   const total = filtered.reduce((sum, r) => sum + n(r.TotalAmount ?? r.totalAmount), 0);
 
-  // Reusable bank fields component
   const BankFields = ({ method, bankAccountID, setBankAccountID, chequeNo, setChequeNo, bankDetails, setBankDetails }) => (
     <>
       {(method === 'Online' || method === 'Bank Transfer') && (
@@ -366,7 +375,6 @@ export function Purchases() {
                 </button>
               </div>
 
-              {/* Payment Section */}
               <div style={{marginTop:12, padding:12, background:'#eff6ff', borderRadius:6, border:'1px solid #93c5fd'}}>
                 <div style={{fontWeight:600, marginBottom:8, color:'#1d4ed8'}}>💰 Payment Details</div>
                 <div style={{display:'flex', gap:10}}>
@@ -405,7 +413,10 @@ export function Purchases() {
 
               <div style={{display:'flex', gap:10, marginTop:16}}>
                 <button type="button" onClick={()=>setShowModal(false)} style={{...S.btn('#6b7280'), flex:1}}>Cancel</button>
-                <button type="submit" style={{...S.btn('#2563eb'), flex:1}}>Save Purchase</button>
+                <button type="submit" disabled={submitting}
+                  style={{...S.btn(submitting ? '#9ca3af' : '#2563eb'), flex:1, cursor: submitting ? 'not-allowed' : 'pointer'}}>
+                  {submitting ? '⏳ Saving...' : 'Save Purchase'}
+                </button>
               </div>
             </form>
           </div>
@@ -456,7 +467,10 @@ export function Purchases() {
 
               <div style={{display:'flex', gap:10, marginTop:16}}>
                 <button type="button" onClick={()=>setShowPayModal(false)} style={{...S.btn('#6b7280'), flex:1}}>Cancel</button>
-                <button type="submit" style={{...S.btn('#16a34a'), flex:1}}>Record Payment</button>
+                <button type="submit" disabled={paySubmitting}
+                  style={{...S.btn(paySubmitting ? '#9ca3af' : '#16a34a'), flex:1, cursor: paySubmitting ? 'not-allowed' : 'pointer'}}>
+                  {paySubmitting ? '⏳ Saving...' : 'Record Payment'}
+                </button>
               </div>
             </form>
           </div>
