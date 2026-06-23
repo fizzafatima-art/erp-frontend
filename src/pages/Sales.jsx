@@ -86,7 +86,6 @@ export function Sales() {
     } finally { setLoading(false); }
   };
 
-  // ✅ UPDATED: Warehouse-wise stock fetch karta hai product select hone par
   const updateItem = async (index, field, value) => {
     const newItems = [...formData.Items];
     newItems[index][field] = value;
@@ -102,7 +101,6 @@ export function Sales() {
         const prod = products.find(p => String(p.ProductID) === String(value));
         newItems[index].Rate = prod ? n(prod.Price) : 0;
 
-        // Warehouse-wise stock fetch karo
         try {
           const res = await axios.get(`${API}/sales/product-stock/${value}`);
           newItems[index].WarehouseStock = res.data?.data || [];
@@ -114,7 +112,6 @@ export function Sales() {
     }
 
     if (field === 'WarehouseID') {
-      // Selected warehouse ki quantity Stock mein set karo
       const wStock = newItems[index].WarehouseStock || [];
       const found = wStock.find(w => String(w.WarehouseID) === String(value));
       newItems[index].Stock = found ? n(found.CurrentQuantity) : 0;
@@ -319,13 +316,13 @@ export function Sales() {
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:14 }}>
             <thead><tr style={{ background:'#f3f4f6' }}>
-              {['#','Date','Customer','Invoice #','Total','Paid','Balance','Status','Actions'].map(h=>(
+              {['#','Date','Customer','Invoice #','Total','Paid','Balance','Status','🏭 Warehouse','Actions'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
               {filtered.length===0
-                ? <tr><td colSpan={9} style={S.empty}>No sales found.</td></tr>
+                ? <tr><td colSpan={10} style={S.empty}>No sales found.</td></tr>
                 : filtered.map((r,i) => (
                   <tr key={r.SaleID} style={{ borderBottom:'1px solid #e5e7eb' }}>
                     <td style={S.td}>{i+1}</td>
@@ -343,6 +340,10 @@ export function Sales() {
                         background: r.PaymentStatus==='Paid'?'#f0fdf4':'#fef2f2',
                         color:      r.PaymentStatus==='Paid'?'#16a34a':'#dc2626'
                       }}>{r.PaymentStatus}</span>
+                    </td>
+                    {/* ✅ NEW: Warehouse column */}
+                    <td style={{...S.td, fontSize:12, color:'#6b7280'}}>
+                      {s(r.Warehouses) || '-'}
                     </td>
                     <td style={{...S.td}}>
                       <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
@@ -395,7 +396,6 @@ export function Sales() {
                 {formData.Items.map((item, idx) => (
                   <div key={idx} style={{marginBottom:12, paddingBottom:10, borderBottom:'1px dashed #e5e7eb'}}>
 
-                    {/* Row 1: Product, Qty, Rate, Amount, Remove */}
                     <div style={{display:'flex', gap:5, alignItems:'center'}}>
                       <select style={{...S.input, flex:2}} value={item.ProductID}
                         onChange={e=>updateItem(idx, 'ProductID', e.target.value)}>
@@ -415,7 +415,6 @@ export function Sales() {
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
                     </div>
 
-                    {/* Row 2: Warehouse dropdown — product-wise stock ke saath */}
                     {item.ProductID && (
                       <div style={{display:'flex', alignItems:'center', gap:8, marginTop:6}}>
                         <span style={{fontSize:12, color:'#6b7280', whiteSpace:'nowrap'}}>🏭 Warehouse:</span>
@@ -436,7 +435,6 @@ export function Sales() {
                       </div>
                     )}
 
-                    {/* Row 3: Stock status — warehouse select hone ke baad */}
                     {item.ProductID && item.WarehouseID && (
                       <div style={{
                         fontSize:11, marginTop:4, paddingLeft:4, fontWeight:600,
@@ -451,7 +449,6 @@ export function Sales() {
                       </div>
                     )}
 
-                    {/* Hint: product select karo warehouse dekhne ke liye */}
                     {!item.ProductID && (
                       <div style={{fontSize:11, color:'#9ca3af', marginTop:4, paddingLeft:2}}>
                         ↑ Product select karein — warehouse stock automatically dikhega
@@ -465,7 +462,6 @@ export function Sales() {
                 </button>
               </div>
 
-              {/* Payment Section */}
               <div style={{marginTop:12, padding:12, background:'#f0fdf4', borderRadius:6, border:'1px solid #86efac'}}>
                 <div style={{fontWeight:600, marginBottom:8, color:'#15803d'}}>💰 Payment Details</div>
                 <div style={{display:'flex', gap:10}}>
