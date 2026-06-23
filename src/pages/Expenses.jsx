@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// MATCHES backend: GET /api/v1/expenses  POST /api/v1/expenses
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 const s   = (v) => (v == null ? '' : String(v));
@@ -9,21 +8,28 @@ const n   = (v) => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v) => {
   if (!v) return '—';
   const d = new Date(v);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-PK', { day:'2-digit', month:'short', year:'numeric' });
 };
 
-const INIT = { Category:'', ExpenseDate:'', Description:'', Amount:'', PaymentMethod:'Cash' };
-const METHODS = ['Cash','Bank Transfer','Cheque','Card','UPI','Other'];
+const DEFAULT_CATEGORIES = ['Rent','Utilities','Salary','Transport','Office Supplies','Marketing','Maintenance','Insurance','Taxes','Other'];
+const METHODS = ['Cash','Bank Transfer','Cheque','Card','Other'];
+
+const INIT = { Category:'', CustomCategory:'', ExpenseDate:'', Description:'', Amount:'', PaymentMethod:'Cash', ChequeNo:'' };
 
 export default function Expenses() {
-  const [rows, setRows]       = useState([]);
-  const [form, setForm]       = useState(INIT);
-  const [showModal, setShow]  = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState('');
-  const [success, setSuccess] = useState('');
-  const [search, setSearch]   = useState('');
+  const [rows, setRows]           = useState([]);
+  const [form, setForm]           = useState(INIT);
+  const [showModal, setShow]      = useState(false);
+  const [showTypeModal, setShowTypeModal] = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
+  const [search, setSearch]       = useState('');
+  // Custom expense types — stored in localStorage
+  const [customTypes, setCustomTypes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('expenseTypes') || '[]'); } catch { return []; }
+  });
+  const [newTypeName, setNewTypeName] = useState('');
 
   useEffect(() => { load(); }, []);
 
@@ -32,47 +38,55 @@ export default function Expenses() {
       setLoading(true); setError('');
       const res = await axios.get(`${API}/expenses`);
       const raw = res.data;
-      // backend returns { success:true, data: [...] }
-      const arr = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
-      setRows(arr);
+      setRows(Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : []);
     } catch (e) {
-      setError('Failed to load expenses. Check backend connection.');
+      setError('Failed to load expenses.');
     } finally { setLoading(false); }
   };
 
-  const openAdd  = () => { setForm(INIT); setError(''); setSuccess(''); setShow(true); };
-  const closeModal = () => { setShow(false); setError(''); };
+  const allCategories = [...DEFAULT_CATEGORIES.filter(c => c !== 'Other'), ...customTypes, 'Other'];
+
+  const saveCustomTypes = (types) => {
+    setCustomTypes(types);
+    localStorage.setItem('expenseTypes', JSON.stringify(types));
+  };
+
+  const addCustomType = () => {
+    const name = newTypeName.trim();
+    if (!name) return;
+    if (allCategories.includes(name)) { alert('Category already exists'); return; }
+    saveCustomTypes([...customTypes, name]);
+    setNewTypeName('');
+  };
+
+  const removeCustomType = (name) => {
+    saveCustomTypes(customTypes.filter(t => t !== name));
+  };
+
+  const openAdd = () => { setForm(INIT); setError(''); setShow(true); };
 
   const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('');
-    if (!form.Category.trim())                                       { setError('Category is required.'); return; }
-    if (!form.Amount || isNaN(Number(form.Amount)) || +form.Amount<=0) { setError('Enter a valid amount.'); return; }
+    const category = form.Category === 'Other' && form.CustomCategory.trim()
+      ? form.CustomCategory.trim()
+      : form.Category;
+    if (!category) { setError('Category is required.'); return; }
+    if (!form.Amount || isNaN(Number(form.Amount)) || +form.Amount <= 0) { setError('Enter a valid amount.'); return; }
 
     try {
       setSaving(true);
-      // backend createExpense expects: { category, description, amount, paymentMethod }
       await axios.post(`${API}/expenses`, {
-        category:      form.Category.trim(),
-        expenseDate: form.ExpenseDate || new Date().toISOString().split('T')[0],
+        category,
+        expenseDate:   form.ExpenseDate || new Date().toISOString().split('T')[0],
         description:   form.Description.trim(),
         amount:        Number(form.Amount),
         paymentMethod: form.PaymentMethod,
+        chequeNo:      form.ChequeNo || '',
       });
-      // Optimistic Update: Show user selected date immediately
-      const newExpense = {
-        ExpenseID: Date.now(),
-        ExpenseDate: form.ExpenseDate,
-        Category: form.Category,
-        Description: form.Description,
-        Amount: form.Amount,
-        PaymentMethod: form.PaymentMethod
-      };
-      setRows([newExpense, ...rows]);
-      setSuccess('Expense recorded.');
-      closeModal();
-// await load(); // Disabled to keep frontend date correct
+      setShow(false);
+      load();
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Failed to save.');
     } finally { setSaving(false); }
@@ -89,22 +103,24 @@ export default function Expenses() {
     <div style={{ padding:24, fontFamily:'Segoe UI,sans-serif' }}>
       <div style={S.hdr}>
         <h2 style={{ margin:0 }}>💸 Expenses</h2>
-        <button onClick={openAdd} style={S.btn('#2563eb')}>+ Add Expense</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={()=>setShowTypeModal(true)} style={S.btn('#7c3aed')}>⚙️ Manage Types</button>
+          <button onClick={load} style={S.btn('#6b7280')}>↻ Refresh</button>
+          <button onClick={openAdd} style={S.btn('#2563eb')}>+ Add Expense</button>
+        </div>
       </div>
 
-      {/* Summary */}
       <div style={{ display:'flex', gap:14, marginBottom:20, flexWrap:'wrap' }}>
         <Card label="Total (filtered)" value={`Rs.${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`} color="#dc2626" />
-        <Card label="Records"          value={rows.length} color="#2563eb" />
+        <Card label="Records" value={rows.length} color="#2563eb" />
       </div>
 
-      {error   && <div style={S.err}>{error}</div>}
-      {success && <div style={S.ok}>{success}</div>}
+      {error && <div style={S.err}>{error}</div>}
 
-      <input placeholder="Search category or description…" value={search}
+      <input placeholder="Search category or description..." value={search}
         onChange={e=>setSearch(e.target.value)} style={S.search} />
 
-      {loading ? <p>Loading…</p> : (
+      {loading ? <p>Loading...</p> : (
         <div style={{ overflowX:'auto' }}>
           <table style={S.table}>
             <thead><tr style={{ background:'#f3f4f6' }}>
@@ -116,7 +132,7 @@ export default function Expenses() {
               {filtered.length===0
                 ? <tr><td colSpan={6} style={S.empty}>No expenses found.</td></tr>
                 : filtered.map((r,i) => (
-                  <tr key={r.ExpenseID ?? i} style={{ borderBottom:'1px solid #e5e7eb' }}>
+                  <tr key={r.ExpenseID??i} style={{ borderBottom:'1px solid #e5e7eb' }}>
                     <td style={S.td}>{i+1}</td>
                     <td style={S.td}>{fmt(r.ExpenseDate)}</td>
                     <td style={S.td}>
@@ -133,12 +149,10 @@ export default function Expenses() {
                 ))
               }
             </tbody>
-            {filtered.length>0 && (
+            {filtered.length > 0 && (
               <tfoot><tr style={{ background:'#f9fafb', fontWeight:600 }}>
                 <td colSpan={4} style={{ ...S.td, textAlign:'right' }}>Total:</td>
-                <td style={{ ...S.td, color:'#dc2626' }}>
-                  Rs.{total.toLocaleString('en-IN',{minimumFractionDigits:2})}
-                </td>
+                <td style={{ ...S.td, color:'#dc2626' }}>Rs.{total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
                 <td />
               </tr></tfoot>
             )}
@@ -146,6 +160,7 @@ export default function Expenses() {
         </div>
       )}
 
+      {/* ADD EXPENSE MODAL */}
       {showModal && (
         <div style={S.overlay}>
           <div style={S.modal}>
@@ -153,15 +168,19 @@ export default function Expenses() {
             {error && <div style={S.err}>{error}</div>}
             <form onSubmit={handleSubmit}>
               <F label="Category *">
-                <select name="Category" value={form.Category} onChange={handleChange} style={S.input}>
-                  <option value="">— Select —</option>
-                  {['Rent','Utilities','Salary','Transport','Office Supplies','Marketing','Maintenance','Insurance','Taxes','Other'].map(c=>(
-                    <option key={c}>{c}</option>
-                  ))}
+                <select name="Category" value={form.Category} onChange={handleChange} style={S.input} required>
+                  <option value="">— Select Category —</option>
+                  {allCategories.map(c => <option key={c}>{c}</option>)}
                 </select>
+              </F>
+              {form.Category === 'Other' && (
+                <F label="Custom Category Name *">
+                  <input name="CustomCategory" value={form.CustomCategory} onChange={handleChange}
+                    style={S.input} placeholder="Enter category name" required />
+                </F>
+              )}
               <F label="Date *">
                 <input type="date" name="ExpenseDate" value={form.ExpenseDate} onChange={handleChange} style={S.input} required />
-              </F>
               </F>
               <F label="Amount (Rs.) *">
                 <input name="Amount" type="number" step="0.01" min="0.01"
@@ -172,15 +191,71 @@ export default function Expenses() {
                   {METHODS.map(m=><option key={m}>{m}</option>)}
                 </select>
               </F>
+              {/* ✅ Cheque No field fixed */}
+              {form.PaymentMethod === 'Cheque' && (
+                <F label="Cheque No *">
+                  <input name="ChequeNo" value={form.ChequeNo} onChange={handleChange}
+                    style={S.input} placeholder="Enter cheque number" required />
+                </F>
+              )}
               <F label="Description">
                 <textarea name="Description" value={form.Description} onChange={handleChange}
                   rows={3} style={{ ...S.input, resize:'vertical' }} />
               </F>
               <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
-                <button type="button" onClick={closeModal} style={S.btn('#6b7280')}>Cancel</button>
-                <button type="submit" disabled={saving} style={S.btn('#2563eb')}>{saving?'Saving…':'Add Expense'}</button>
+                <button type="button" onClick={()=>setShow(false)} style={S.btn('#6b7280')}>Cancel</button>
+                <button type="submit" disabled={saving} style={S.btn('#2563eb')}>{saving?'Saving...':'Add Expense'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MANAGE EXPENSE TYPES MODAL */}
+      {showTypeModal && (
+        <div style={S.overlay}>
+          <div style={S.modal}>
+            <h3 style={{ marginTop:0 }}>⚙️ Manage Expense Types</h3>
+            <p style={{ fontSize:13, color:'#6b7280', marginBottom:16 }}>Add custom expense categories for your business.</p>
+
+            {/* Default types */}
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:8 }}>DEFAULT CATEGORIES</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                {DEFAULT_CATEGORIES.map(c => (
+                  <span key={c} style={{ background:'#f3f4f6', color:'#374151', padding:'4px 10px', borderRadius:20, fontSize:12 }}>{c}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom types */}
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:8 }}>CUSTOM CATEGORIES</div>
+              {customTypes.length === 0
+                ? <p style={{ fontSize:13, color:'#9ca3af' }}>No custom categories yet.</p>
+                : (
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                    {customTypes.map(c => (
+                      <span key={c} style={{ background:'#eff6ff', color:'#2563eb', padding:'4px 10px', borderRadius:20, fontSize:12, display:'flex', alignItems:'center', gap:6 }}>
+                        {c}
+                        <button onClick={()=>removeCustomType(c)}
+                          style={{ background:'none', border:'none', color:'#dc2626', cursor:'pointer', fontSize:14, lineHeight:1, padding:0 }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )
+              }
+            </div>
+
+            {/* Add new type */}
+            <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+              <input value={newTypeName} onChange={e=>setNewTypeName(e.target.value)}
+                placeholder="New category name..." style={{ ...S.input, flex:1 }}
+                onKeyDown={e=>e.key==='Enter'&&(e.preventDefault(),addCustomType())} />
+              <button onClick={addCustomType} style={S.btn('#2563eb')}>Add</button>
+            </div>
+
+            <button onClick={()=>setShowTypeModal(false)} style={{...S.btn('#6b7280'), width:'100%'}}>Close</button>
           </div>
         </div>
       )}
@@ -215,9 +290,7 @@ const S = {
   empty:  { textAlign:'center', padding:28, color:'#6b7280' },
   input:  { width:'100%', padding:'8px 10px', borderRadius:6, border:'1px solid #d1d5db', fontSize:14, boxSizing:'border-box', fontFamily:'inherit' },
   overlay:{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
-  modal:  { background:'#fff', borderRadius:10, padding:28, width:'100%', maxWidth:460, maxHeight:'90vh', overflowY:'auto' },
-  err:    { background:'#fef2f2', border:'1px solid #fca5a5', color:'#b91c1c', padding:'10px 14px', borderRadius:6, marginBottom:14, fontSize:14 },
-  ok:     { background:'#f0fdf4', border:'1px solid #86efac', color:'#15803d', padding:'10px 14px', borderRadius:6, marginBottom:14, fontSize:14 },
-  btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:14, fontWeight:500 }),
+  modal:  { background:'#fff', borderRadius:10, padding:28, width:'100%', maxWidth:480, maxHeight:'90vh', overflowY:'auto' },
+  err:    { background:'#fef2f2', border:'1px solid #fca5a5', color:'#b91c1c', padding:'10px 14px', borderRadius:6, marginBottom:14, fontSize:13 },
+  btn:    (bg) => ({ background:bg, color:'#fff', border:'none', borderRadius:6, padding:'9px 18px', cursor:'pointer', fontSize:13, fontWeight:500 }),
 };
-
