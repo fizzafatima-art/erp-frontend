@@ -66,10 +66,15 @@ export function Sales() {
       setProducts(allProds);
 
       try {
-        const bRes = await axios.get(`${API}/bank-reconciliation/accounts`);
+        const bRes = await axios.get(`${API}/bank/accounts`);
         setBankAccounts(Array.isArray(bRes.data?.data) ? bRes.data.data : []);
       } catch (e) {
-        console.warn('Bank accounts load failed:', e.message);
+        try {
+          const bRes2 = await axios.get(`${API}/bank-reconciliation/accounts`);
+          setBankAccounts(Array.isArray(bRes2.data?.data) ? bRes2.data.data : []);
+        } catch (e2) {
+          console.warn('Bank accounts load failed');
+        }
       }
     } catch (e) { console.error("Dropdown Error", e); }
   };
@@ -161,7 +166,6 @@ export function Sales() {
     } catch (e) {
       console.warn('Detail API failed:', e.message);
     }
-
     if (!items || items.length === 0) {
       items = sale.Items || sale.items || sale.SaleItems || sale.saleItems || [];
     }
@@ -177,6 +181,10 @@ export function Sales() {
       };
     });
 
+    const calcTotal = resolvedItems.reduce((sum, i) => sum + i.Amount, 0);
+    const finalTotal = calcTotal > 0 ? calcTotal : n(sale.TotalAmount || sale.totalAmount || 0);
+    const finalPaid = n(sale.PaidAmount || sale.ReceivedAmount || sale.paidAmount || 0);
+
     generateInvoicePDF({
       type:       'sale',
       invoiceNo:  sale.InvoiceNo   || sale.invoiceNo   || '-',
@@ -186,9 +194,9 @@ export function Sales() {
       partyPhone: sale.CustomerPhone || sale.customerPhone || '',
       partyCity:  sale.CustomerCity  || sale.customerCity  || '',
       items:      resolvedItems,
-      total:      n(sale.TotalAmount    || sale.totalAmount),
-      paid:       n(sale.PaidAmount     || sale.ReceivedAmount || sale.paidAmount || 0),
-      balance:    n(sale.BalanceAmount  || sale.balanceAmount  || 0),
+      total:      finalTotal,
+      paid:       finalPaid,
+      balance:    finalTotal - finalPaid,
       status:     sale.PaymentStatus   || sale.paymentStatus   || 'Pending',
     });
   };
@@ -197,6 +205,10 @@ export function Sales() {
     e.preventDefault();
     try {
       const total = getTotal();
+      if (total <= 0) {
+        alert('Error: Total amount is Rs.0 — please add items with valid quantity and rate.');
+        return;
+      }
       const paid  = Number(formData.ReceivedAmount) || 0;
       const payload = {
         CustomerID:     formData.CustomerID,
@@ -227,7 +239,11 @@ export function Sales() {
 
   const openPayModal = (sale) => {
     setSelectedSale(sale);
-    setPayForm({ amount: n(sale.BalanceAmount).toFixed(2), method: 'Cash', chequeNo: '', bankAccountID: '', bankDetails: '', notes: '' });
+    setPayForm({
+      amount: n(sale.BalanceAmount).toFixed(2),
+      method: sale.PaymentMethod === 'Cheque' ? 'Cheque' : sale.PaymentMethod === 'Online' ? 'Online' : sale.PaymentMethod === 'Bank Transfer' ? 'Bank Transfer' : 'Cash',
+      chequeNo: '', bankAccountID: '', bankDetails: '', notes: ''
+    });
     setShowPayModal(true);
   };
 
@@ -268,8 +284,8 @@ export function Sales() {
               <option disabled>No bank accounts found — add from Bank Reconciliation</option>
             )}
             {bankAccounts.map(b => (
-              <option key={b.BankAccountID} value={b.BankAccountID}>
-                {b.BankName} — {b.AccountNumber} ({b.AccountTitle})
+              <option key={b.AccountID || b.BankAccountID} value={b.AccountID || b.BankAccountID}>
+                {b.BankName} — {b.AccountNo} ({b.AccountTitle})
               </option>
             ))}
           </select>
@@ -277,20 +293,46 @@ export function Sales() {
       )}
       {method === 'Cheque' && (
         <div style={{ marginTop: 8 }}>
-          <label style={S.label}>Cheque No</label>
+          <label style={S.label}>📝 Cheque No</label>
           <input style={S.input} placeholder="Cheque Number"
             value={chequeNo} onChange={e => setChequeNo(e.target.value)} />
         </div>
       )}
       {(method === 'Online' || method === 'Bank Transfer') && (
         <div style={{ marginTop: 8 }}>
-          <label style={S.label}>Reference / Transaction ID</label>
+          <label style={S.label}>🔄 Reference / Transaction ID</label>
           <input style={S.input} placeholder="e.g. TXN123456"
             value={bankDetails} onChange={e => setBankDetails(e.target.value)} />
         </div>
       )}
     </>
   );
+
+  const PaymentBadge = ({ method, chequeNo, bankDetails }) => {
+    const m = (method || 'Cash').toUpperCase();
+    let color = '#16a34a';
+    let bg = '#f0fdf4';
+    if (m === 'CHEQUE') { color = '#7c3aed'; bg = '#f5f3ff'; }
+    else if (m === 'ONLINE') { color = '#2563eb'; bg = '#eff6ff'; }
+    else if (m === 'BANK TRANSFER') { color = '#0891b2'; bg = '#ecfeff'; }
+
+    let detail = '';
+    if (m === 'CHEQUE' && s(chequeNo)) detail = `Chq# ${s(chequeNo)}`;
+    else if ((m === 'ONLINE' || m === 'BANK TRANSFER') && s(bankDetails)) detail = s(bankDetails).length > 18 ? s(bankDetails).substring(0, 18) + '...' : s(bankDetails);
+
+    return (
+      <div>
+        <span style={{ padding:'2px 8px', borderRadius:6, fontSize:11, fontWeight:600, background:bg, color, display:'inline-block' }}>
+          {m}
+        </span>
+        {detail && (
+          <div style={{ fontSize:10, color:'#6b7280', marginTop:3, maxWidth:140, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={detail}>
+            {detail}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div style={{ padding:24, fontFamily:'Segoe UI,sans-serif' }}>
@@ -316,13 +358,13 @@ export function Sales() {
         <div style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:14 }}>
             <thead><tr style={{ background:'#f3f4f6' }}>
-              {['#','Date','Customer','Invoice #','Total','Paid','Balance','Status','🏭 Warehouse','Actions'].map(h=>(
+              {['#','Date','Customer','Invoice #','Total','Paid','Balance','Status','💳 Payment','🏭 Warehouse','Actions'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
               {filtered.length===0
-                ? <tr><td colSpan={10} style={S.empty}>No sales found.</td></tr>
+                ? <tr><td colSpan={11} style={S.empty}>No sales found.</td></tr>
                 : filtered.map((r,i) => (
                   <tr key={r.SaleID} style={{ borderBottom:'1px solid #e5e7eb' }}>
                     <td style={S.td}>{i+1}</td>
@@ -331,21 +373,28 @@ export function Sales() {
                     <td style={S.td}>{s(r.InvoiceNo)||'-'}</td>
                     <td style={{...S.td, fontWeight:600}}>Rs.{n(r.TotalAmount).toFixed(2)}</td>
                     <td style={S.td}>Rs.{n(r.PaidAmount).toFixed(2)}</td>
-                    <td style={{...S.td, color: n(r.BalanceAmount)>0?'#dc2626':'#16a34a', fontWeight:600}}>
-                      Rs.{n(r.BalanceAmount).toFixed(2)}
+                    <td style={{...S.td, color: Math.max(0, n(r.BalanceAmount))>0?'#dc2626':'#16a34a', fontWeight:600}}>
+                      Rs.{Math.max(0, n(r.BalanceAmount)).toFixed(2)}
                     </td>
                     <td style={S.td}>
                       <span style={{
                         padding:'3px 10px', borderRadius:12, fontSize:12, fontWeight:600,
-                        background: r.PaymentStatus==='Paid'?'#f0fdf4':'#fef2f2',
-                        color:      r.PaymentStatus==='Paid'?'#16a34a':'#dc2626'
+                        background: r.PaymentStatus==='Paid'?'#f0fdf4': r.PaymentStatus==='Partial'?'#fffbeb':'#fef2f2',
+                        color:      r.PaymentStatus==='Paid'?'#16a34a': r.PaymentStatus==='Partial'?'#d97706':'#dc2626'
                       }}>{r.PaymentStatus}</span>
                     </td>
-                    {/* ✅ NEW: Warehouse column */}
-                    <td style={{...S.td, fontSize:12, color:'#6b7280'}}>
+                    {/* ✅ NEW: Payment info column */}
+                    <td style={S.td}>
+                      <PaymentBadge
+                        method={r.PaymentMethod}
+                        chequeNo={r.ChequeNo}
+                        bankDetails={r.BankDetails}
+                      />
+                    </td>
+                    <td style={{...S.td, fontSize:12, color:'#6b7280', maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}} title={s(r.Warehouses)}>
                       {s(r.Warehouses) || '-'}
                     </td>
-                    <td style={{...S.td}}>
+                    <td style={S.td}>
                       <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
                         <button onClick={() => handleDownloadInvoice(r)} style={S.btnSm('#0284c7')} title="Download Invoice">
                           🧾 Invoice
@@ -395,7 +444,6 @@ export function Sales() {
               <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:320, overflowY:'auto'}}>
                 {formData.Items.map((item, idx) => (
                   <div key={idx} style={{marginBottom:12, paddingBottom:10, borderBottom:'1px dashed #e5e7eb'}}>
-
                     <div style={{display:'flex', gap:5, alignItems:'center'}}>
                       <select style={{...S.input, flex:2}} value={item.ProductID}
                         onChange={e=>updateItem(idx, 'ProductID', e.target.value)}>
@@ -515,6 +563,11 @@ export function Sales() {
             <p style={{color:'#6b7280', fontSize:13}}>
               Invoice: <strong>{selectedSale.InvoiceNo}</strong> | Balance: <strong>Rs.{n(selectedSale.BalanceAmount).toFixed(2)}</strong>
             </p>
+            {selectedSale.ChequeNo && (
+              <div style={{padding:'6px 10px', background:'#f5f3ff', borderRadius:6, fontSize:12, color:'#7c3aed', marginBottom:10}}>
+                📝 Previous: Cheque #{selectedSale.ChequeNo}
+              </div>
+            )}
             <form onSubmit={handlePaySubmit}>
               <label style={S.label}>Amount *</label>
               <input required type="number" style={S.input} value={payForm.amount}
