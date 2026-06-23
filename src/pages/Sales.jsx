@@ -34,7 +34,7 @@ export function Sales() {
     ChequeNo: '',
     BankAccountID: '',
     BankDetails: '',
-    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
+    Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '', WarehouseStock: [] }]
   });
 
   const [payForm, setPayForm] = useState({
@@ -65,7 +65,6 @@ export function Sales() {
       const allProds = Array.isArray(pRes.data?.data) ? pRes.data.data : [];
       setProducts(allProds);
 
-      // Bank accounts load karo
       try {
         const bRes = await axios.get(`${API}/bank-reconciliation/accounts`);
         setBankAccounts(Array.isArray(bRes.data?.data) ? bRes.data.data : []);
@@ -87,14 +86,38 @@ export function Sales() {
     } finally { setLoading(false); }
   };
 
-  const updateItem = (index, field, value) => {
+  // ✅ UPDATED: Warehouse-wise stock fetch karta hai product select hone par
+  const updateItem = async (index, field, value) => {
     const newItems = [...formData.Items];
     newItems[index][field] = value;
 
     if (field === 'ProductID') {
-      const prod = products.find(p => String(p.ProductID) === String(value));
-      newItems[index].Stock = prod ? n(prod.CurrentQuantity) : 0;
-      newItems[index].Rate  = prod ? n(prod.Price) : 0;
+      newItems[index].Rate = 0;
+      newItems[index].Stock = 0;
+      newItems[index].WarehouseID = '';
+      newItems[index].WarehouseStock = [];
+      newItems[index].Amount = 0;
+
+      if (value) {
+        const prod = products.find(p => String(p.ProductID) === String(value));
+        newItems[index].Rate = prod ? n(prod.Price) : 0;
+
+        // Warehouse-wise stock fetch karo
+        try {
+          const res = await axios.get(`${API}/sales/product-stock/${value}`);
+          newItems[index].WarehouseStock = res.data?.data || [];
+        } catch (e) {
+          console.warn('Warehouse stock fetch failed:', e.message);
+          newItems[index].WarehouseStock = [];
+        }
+      }
+    }
+
+    if (field === 'WarehouseID') {
+      // Selected warehouse ki quantity Stock mein set karo
+      const wStock = newItems[index].WarehouseStock || [];
+      const found = wStock.find(w => String(w.WarehouseID) === String(value));
+      newItems[index].Stock = found ? n(found.CurrentQuantity) : 0;
     }
 
     if (field === 'Quantity' || field === 'Rate') {
@@ -109,7 +132,7 @@ export function Sales() {
   const addItemRow = () => {
     setFormData({
       ...formData,
-      Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
+      Items: [...formData.Items, { ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '', WarehouseStock: [] }]
     });
   };
 
@@ -197,7 +220,7 @@ export function Sales() {
         CustomerID: '', SaleDate: new Date().toISOString().split('T')[0],
         Description: '', ReceivedAmount: 0, PaymentMethod: 'Cash',
         ChequeNo: '', BankAccountID: '', BankDetails: '',
-        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '' }]
+        Items: [{ ProductID: '', Quantity: 1, Rate: 0, Amount: 0, Stock: 0, WarehouseID: '', WarehouseStock: [] }]
       });
       load();
     } catch (err) {
@@ -237,18 +260,12 @@ export function Sales() {
 
   const totalSales = filtered.reduce((sum, r) => sum + n(r.TotalAmount), 0);
 
-  // Bank field — new sale + pay modal dono ke liye reusable
   const BankFields = ({ method, bankAccountID, setBankAccountID, chequeNo, setChequeNo, bankDetails, setBankDetails }) => (
     <>
       {(method === 'Online' || method === 'Bank Transfer') && (
         <div style={{ marginTop: 8 }}>
           <label style={S.label}>🏦 Bank Account <span style={{ color: '#dc2626' }}>*</span></label>
-          <select
-            required
-            style={S.input}
-            value={bankAccountID}
-            onChange={e => setBankAccountID(e.target.value)}
-          >
+          <select required style={S.input} value={bankAccountID} onChange={e => setBankAccountID(e.target.value)}>
             <option value="">-- Select Bank Account --</option>
             {bankAccounts.length === 0 && (
               <option disabled>No bank accounts found — add from Bank Reconciliation</option>
@@ -374,9 +391,11 @@ export function Sales() {
               </div>
 
               <label style={{...S.label, marginTop:10}}>Items</label>
-              <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:280, overflowY:'auto'}}>
+              <div style={{border:'1px solid #e5e7eb', borderRadius:4, padding:10, background:'#f9fafb', maxHeight:320, overflowY:'auto'}}>
                 {formData.Items.map((item, idx) => (
-                  <div key={idx} style={{marginBottom:8}}>
+                  <div key={idx} style={{marginBottom:12, paddingBottom:10, borderBottom:'1px dashed #e5e7eb'}}>
+
+                    {/* Row 1: Product, Qty, Rate, Amount, Remove */}
                     <div style={{display:'flex', gap:5, alignItems:'center'}}>
                       <select style={{...S.input, flex:2}} value={item.ProductID}
                         onChange={e=>updateItem(idx, 'ProductID', e.target.value)}>
@@ -395,20 +414,47 @@ export function Sales() {
                       <button type="button" onClick={()=>removeItemRow(idx)}
                         style={{color:'red', background:'none', border:'none', cursor:'pointer', fontSize:16}}>✕</button>
                     </div>
-                    <div style={{display:'flex', alignItems:'center', gap:8, marginTop:5}}>
-                      <span style={{fontSize:12, color:'#6b7280', whiteSpace:'nowrap'}}>🏭 Warehouse:</span>
-                      <select style={{...S.input, flex:1, fontSize:12}}
-                        value={item.WarehouseID}
-                        onChange={e=>updateItem(idx, 'WarehouseID', e.target.value)}>
-                        <option value="">Select Warehouse</option>
-                        {warehouses.map(w => (
-                          <option key={w.WarehouseID} value={w.WarehouseID}>{w.WarehouseName} — {w.City||''}</option>
-                        ))}
-                      </select>
-                    </div>
+
+                    {/* Row 2: Warehouse dropdown — product-wise stock ke saath */}
                     {item.ProductID && (
-                      <div style={{fontSize:11, color: n(item.Stock) < n(item.Quantity) ? '#dc2626' : '#16a34a', marginTop:2, paddingLeft:4}}>
-                        Stock available: {n(item.Stock)} {n(item.Stock) < n(item.Quantity) ? '⚠️ Low!' : '✓'}
+                      <div style={{display:'flex', alignItems:'center', gap:8, marginTop:6}}>
+                        <span style={{fontSize:12, color:'#6b7280', whiteSpace:'nowrap'}}>🏭 Warehouse:</span>
+                        <select style={{...S.input, flex:1, fontSize:12}}
+                          value={item.WarehouseID}
+                          onChange={e=>updateItem(idx, 'WarehouseID', e.target.value)}>
+                          <option value="">-- Select Warehouse --</option>
+                          {(item.WarehouseStock && item.WarehouseStock.length > 0
+                            ? item.WarehouseStock
+                            : warehouses
+                          ).map(w => (
+                            <option key={w.WarehouseID} value={w.WarehouseID}>
+                              {w.WarehouseName}{w.City ? ` — ${w.City}` : ''}
+                              {w.CurrentQuantity !== undefined ? `  |  Stock: ${n(w.CurrentQuantity)}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Row 3: Stock status — warehouse select hone ke baad */}
+                    {item.ProductID && item.WarehouseID && (
+                      <div style={{
+                        fontSize:11, marginTop:4, paddingLeft:4, fontWeight:600,
+                        color: n(item.Stock) <= 0 ? '#dc2626' : n(item.Stock) < n(item.Quantity) ? '#d97706' : '#16a34a'
+                      }}>
+                        {n(item.Stock) <= 0
+                          ? `❌ Out of Stock in selected warehouse!`
+                          : n(item.Stock) < n(item.Quantity)
+                            ? `⚠️ Insufficient! Available: ${n(item.Stock)}, Requested: ${n(item.Quantity)}`
+                            : `✓ Available: ${n(item.Stock)}`
+                        }
+                      </div>
+                    )}
+
+                    {/* Hint: product select karo warehouse dekhne ke liye */}
+                    {!item.ProductID && (
+                      <div style={{fontSize:11, color:'#9ca3af', marginTop:4, paddingLeft:2}}>
+                        ↑ Product select karein — warehouse stock automatically dikhega
                       </div>
                     )}
                   </div>
